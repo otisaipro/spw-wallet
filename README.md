@@ -1,99 +1,99 @@
 # SPW Wallet
 
-Sparrow Network (SPW) 官方钱包 —— 浏览器可安装 PWA + Python 钱包引擎。
-单文件前端,零构建,零依赖,完全自托管。
+Official wallet for the Sparrow Network (SPW) — an installable browser PWA plus a Python wallet engine.
+Single-file frontend, zero build, zero dependencies, fully self-hostable.
 
-官方部署: https://spw.network/wallet
+Official deployment: https://spw.network/wallet
 
-## 功能特性
+## Features
 
-- **BIP39 助记词** —— 12 词生成/导入,支持 BIP39 passphrase
-- **BIP32 HD 派生** —— 路径 `m/44'/1926'/0'/0/index`,多账户
-- **SECP256k1 签名** —— 标准椭圆曲线密码学
-- **隐身地址 (Stealth Address)** —— ECDH 双密钥 (spend key + view key),保护接收方隐私
-- **单文件 PWA** —— 一个 `index.html` 包含全部逻辑,可审计,Service Worker 离线运行
-- **多账户管理** —— 本地 localStorage 存储账户列表
-- **二维码** —— 收款二维码展示 + 扫码发送
-- **地址浏览器** —— 内置区块链查询
-- **Base58Check 地址格式** —— 前缀 `S`(版本 `0x1e`)
+- **BIP39 mnemonics** — 12-word generation/import, optional BIP39 passphrase
+- **BIP32 HD derivation** — path `m/44'/1926'/0'/0/index`, multi-account
+- **SECP256k1 signing** — standard elliptic-curve cryptography
+- **Stealth addresses** — ECDH dual-key scheme (spend key + view key) for recipient privacy
+- **Single-file PWA** — one `index.html` contains all logic, fully auditable, Service Worker for offline use
+- **Multi-account management** — account list stored in browser `localStorage`
+- **QR codes** — receive QR display and scan-to-send
+- **Address explorer** — built-in on-chain lookup
+- **Base58Check addresses** — prefix `S` (version byte `0x1e`)
 
-## 目录结构
+## Repository Layout
 
 ```
 spw_wallet/
-├── wallet_web/          # 浏览器钱包 PWA
-│   ├── index.html       # 单文件应用(~130KB,含全部 JS/CSS)
-│   ├── sw.js            # Service Worker (离线缓存)
-│   ├── manifest.json    # PWA 清单
-│   └── *.png, *.ico     # 图标与品牌资源
-└── wallet/              # Python 钱包模块
-    ├── wallet.py        # 钱包生成/签名/Base58Check
-    ├── bip39.py         # BIP39 助记词 + BIP32 派生
-    ├── bip39_words.py   # BIP39 英文单词表 (2048 词)
+├── wallet_web/          # Browser wallet PWA
+│   ├── index.html       # Single-file app (~130 KB, all JS/CSS inline)
+│   ├── sw.js            # Service Worker (offline cache)
+│   ├── manifest.json    # PWA manifest
+│   └── *.png, *.ico     # Icons and brand assets
+└── wallet/              # Python wallet module
+    ├── wallet.py        # Keygen / signing / Base58Check
+    ├── bip39.py         # BIP39 mnemonics + BIP32 derivation
+    ├── bip39_words.py   # BIP39 English wordlist (2048 words)
     └── __init__.py
 ```
 
-## 快速使用
+## Quick Start
 
-### 浏览器钱包 (wallet_web/)
+### Browser wallet (`wallet_web/`)
 
-1. 本地预览:
+1. Serve locally:
    ```bash
    cd wallet_web && python3 -m http.server 8000
    ```
-   浏览器打开 `http://localhost:8000`
-2. 或直接访问 https://spw.network/wallet
-3. 在支持的浏览器中"添加到主屏幕"即可安装为 PWA
-4. 安装后可离线运行,账户信息存于浏览器 localStorage
+   Open `http://localhost:8000` in a browser.
+2. Or visit https://spw.network/wallet directly.
+3. Use "Add to Home Screen" in a supported browser to install as a PWA.
+4. Once installed, the app runs offline; account data lives in browser `localStorage`.
 
-### Python 钱包模块 (wallet/)
+### Python wallet module (`wallet/`)
 
-需与 `spw_chain` 项目的 `config.py` 配合(依赖 `WALLET_DIR`, `SPW_VERSION`, `COIN_TYPE`)。
+Depends on the `spw_chain` project's `config.py` (requires `WALLET_DIR`, `SPW_VERSION`, `COIN_TYPE`).
 
 ```python
 from wallet.wallet import Wallet
 from wallet.bip39 import generate_mnemonic, mnemonic_to_spend_key
 
-mnemonic = generate_mnemonic(128)   # 12 词
+mnemonic = generate_mnemonic(128)   # 12 words
 privkey, chain_code = mnemonic_to_spend_key(mnemonic)
 w = Wallet.from_private_key(privkey.hex())
-print(w.address)          # S 开头的 Base58Check 地址
-print(w.spend_key_hex)    # 主花费私钥
-print(w.view_key_hex)     # 扫描私钥 (隐身地址)
+print(w.address)          # Base58Check address starting with "S"
+print(w.spend_key_hex)    # Primary spend private key
+print(w.view_key_hex)     # View private key (stealth scanning)
 ```
 
-## 密钥派生路径
+## Key Derivation Paths
 
-| 路径 | 用途 |
-|------|------|
-| `m/44'/1926'/0'/0/0` | Spend key (主花费密钥) |
-| `m/44'/1926'/0'/1/0` | View key (扫描密钥,用于隐身地址检测) |
+| Path | Purpose |
+|------|---------|
+| `m/44'/1926'/0'/0/0` | Spend key (primary spending key) |
+| `m/44'/1926'/0'/1/0` | View key (scanning key for stealth addresses) |
 
-BIP44 币种代码 **1926** 为 SPW 专属。
+BIP44 coin type **1926** is reserved for SPW.
 
-## 网络参数
+## Network Parameters
 
-| 参数 | 值 |
-|------|-----|
-| 代币 | Sparrow (SPW) |
-| 最大供应 | 21,024,000 SPW |
-| 最小单位 | 1 SPW = 100,000,000 feathers |
-| 区块时间 | 60 秒 |
-| 地址前缀 | `S` (版本字节 `0x1e`) |
-| 默认 API | `http://localhost:8333/` |
+| Parameter | Value |
+|-----------|-------|
+| Ticker | Sparrow (SPW) |
+| Max supply | 21,024,000 SPW |
+| Smallest unit | 1 SPW = 100,000,000 feathers |
+| Block time | 60 seconds |
+| Address prefix | `S` (version byte `0x1e`) |
+| Default API | `http://localhost:8333/` |
 
-## 安全提示
+## Security Notes
 
-- 助记词/私钥仅存储在浏览器 `localStorage` 或本地 JSON 文件,**绝不离开本机**
-- 建议启用 PWA 密码保护功能
-- 本仓库**不包含任何实际钱包文件或私钥**,所有 `*.json` 钱包文件已通过 `.gitignore` 排除
-- 所有加密原语为纯 JS/Python 实现,可独立审计
+- Mnemonics and private keys live only in browser `localStorage` or local JSON files — **they never leave the machine**.
+- Enable the PWA's password protection if you store real funds.
+- This repository contains **no real wallet files or private keys**; any `*.json` wallet files are excluded via `.gitignore`.
+- All cryptographic primitives are pure JavaScript/Python implementations, independently auditable.
 
-## 相关项目
+## Related Projects
 
-- **spw_chain** —— 区块链节点 + REST API (Python/Flask)
-- **spw_web** —— 官网与支付 SDK (`pay.js`)
+- **spw_chain** — Blockchain node + REST API (Python/Flask)
+- **spw_web** — Public website and payment SDK (`pay.js`)
 
-## 开源协议
+## License
 
 MIT License
