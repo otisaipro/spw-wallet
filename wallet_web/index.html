@@ -1,0 +1,2591 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0a0e1a">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>SPW Wallet</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="SPW Wallet">
+  <meta name="theme-color" content="#0a0e1a">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=7">
+  <script>window._deferredInstallPrompt=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window._deferredInstallPrompt=e;});</script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --bg:#0a0e1a;--bg2:#0f1525;--bg3:#141928;--bg4:#1a2035;
+      --border:rgba(99,102,241,.15);--border2:rgba(99,102,241,.28);
+      --purple:#7c3aed;--cyan:#00e0ff;
+      --grad:linear-gradient(135deg,#7c3aed,#00e0ff);
+      --text:#e2e8f0;--muted:#6b7280;--muted2:#4b5563;
+      --green:#10b981;--red:#f87171;--gold:#f59e0b;
+      --hh:56px;--nh:64px;
+      --safe-t:env(safe-area-inset-top,0px);
+      --safe-b:env(safe-area-inset-bottom,0px);
+      --r:14px;
+    }
+    html{height:100%;background:#0a0e1a;touch-action:manipulation}
+    body{height:100%;overflow:hidden;background:#0a0e1a;color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      line-height:1.5;font-size:15px}
+    a{color:inherit;text-decoration:none}
+    img{display:block;max-width:100%;height:auto}
+    svg use{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    input,button,textarea{font-family:inherit;font-size:inherit}
+    button{cursor:pointer;border:none;background:none;color:inherit}
+    .hidden{display:none!important}
+
+    /* ── App shell ─────────────────────────────────────────────── */
+    #app{
+      position:fixed;inset:0;
+      max-width:430px;margin:0 auto;
+      display:flex;flex-direction:column;
+      overflow:hidden;
+      background:var(--bg);
+    }
+    #main-app{flex:1;min-height:0;display:flex;flex-direction:column}
+    /* ── Animations ────────────────────────────────────────────── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .fade-up{animation:fadeUp .3s ease both}
+    .spinner{display:inline-block;width:18px;height:18px;
+      border:2px solid var(--border2);border-top-color:var(--cyan);
+      border-radius:50%;animation:spin .7s linear infinite}
+
+    /* ── Gradient text ─────────────────────────────────────────── */
+    .grad-text{background:var(--grad);-webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;background-clip:text}
+
+    /* ── Header ────────────────────────────────────────────────── */
+    #hdr{
+      flex-shrink:0;height:calc(var(--hh) + var(--safe-t));
+      padding:0 16px;padding-top:var(--safe-t);
+      display:flex;align-items:center;justify-content:space-between;
+      background:var(--bg);border-bottom:1px solid var(--border);
+      position:relative;z-index:50;
+    }
+    .hdr-network{
+      display:flex;align-items:center;gap:6px;
+      font-size:.72rem;font-weight:700;letter-spacing:.06em;color:var(--muted);
+    }
+    .hdr-network .dot{width:7px;height:7px;border-radius:50%;
+      background:var(--green);box-shadow:0 0 6px var(--green);
+      animation:pulse 2s infinite;flex-shrink:0}
+    #hdr-account-btn{
+      display:flex;align-items:center;gap:8px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:20px;padding:6px 12px;transition:.2s;
+    }
+    #hdr-account-btn:hover{border-color:var(--border2)}
+    .hdr-avatar{
+      width:22px;height:22px;border-radius:50%;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:.65rem;font-weight:800;color:#fff;
+    }
+    .hdr-acct-name{font-size:.82rem;font-weight:600;max-width:100px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #hdr-settings-btn{
+      width:36px;height:36px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--muted);transition:.2s;
+    }
+    #hdr-settings-btn:hover{color:var(--text);background:var(--bg3)}
+
+    /* ── Content area ──────────────────────────────────────────── */
+    #content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+    .tab-panel{
+      overflow-y:auto;flex:1;min-height:0;
+      position:relative;
+      -webkit-overflow-scrolling:touch;
+    }
+    .tab-panel::-webkit-scrollbar{width:0}
+    #tab-home{display:flex;flex-direction:column}
+    #home-recent-txs{flex:1;display:flex;flex-direction:column;justify-content:center}
+
+    /* ── Bottom nav ────────────────────────────────────────── */
+    #bottom-nav{
+      flex-shrink:0;
+      display:flex;align-items:stretch;
+      background:rgba(8,11,22,.92);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border-top:1px solid rgba(255,255,255,.06);
+      padding-bottom:env(safe-area-inset-bottom,0px);
+    }
+    .nav-btn{
+      flex:1;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:3px;padding:10px 0 8px;
+      font-size:.62rem;font-weight:600;letter-spacing:.03em;
+      color:#4b5563;transition:color .18s;
+      -webkit-tap-highlight-color:transparent;
+      position:relative;
+    }
+    .nav-btn svg{
+      width:24px;height:24px;stroke:currentColor;stroke-width:1.6;
+      fill:none;stroke-linecap:round;stroke-linejoin:round;
+      flex-shrink:0;transition:transform .18s;
+    }
+    .nav-btn:active svg{transform:scale(.88)}
+    .nav-btn.active{color:#fff}
+    .nav-btn.active svg{
+      stroke:#fff;
+      filter:drop-shadow(0 0 8px rgba(255,255,255,.35));
+    }
+    /* active dot indicator */
+    .nav-btn.active::after{
+      content:'';position:absolute;bottom:5px;
+      width:4px;height:4px;border-radius:50%;
+      background:var(--cyan);
+      box-shadow:0 0 6px var(--cyan);
+    }
+    /* Send — center featured button */
+    #nav-send{
+      flex:1.2;
+    }
+    #nav-send .nav-send-wrap{
+      width:48px;height:48px;border-radius:16px;
+      background:linear-gradient(135deg,var(--purple),var(--cyan));
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 18px rgba(124,58,237,.55);
+      transition:transform .18s, box-shadow .18s;
+      margin-bottom:3px;
+    }
+    #nav-send:active .nav-send-wrap{
+      transform:scale(.9);box-shadow:0 2px 8px rgba(124,58,237,.35);
+    }
+    #nav-send svg{width:22px;height:22px;stroke:#fff;stroke-width:2;margin:0}
+    #nav-send span{color:#fff;font-size:.62rem}
+    #nav-send.active::after{display:none}
+    #nav-send.active .nav-send-wrap{
+      box-shadow:0 4px 24px rgba(0,224,255,.6);
+    }
+
+    /* ── Browser hint banner ──────────────────────────────────── */
+    #browser-hint{
+      position:absolute;
+      bottom:calc(var(--nh) + var(--safe-b) + 10px);
+      left:12px;right:12px;
+      background:var(--bg3);border:1px solid var(--border2);
+      border-radius:16px;padding:11px 13px;
+      display:flex;align-items:flex-start;gap:10px;
+      box-shadow:0 4px 20px rgba(0,0,0,.5);
+      z-index:300;animation:fadeUp .35s ease both;
+    }
+    #browser-hint.hidden{display:none!important}
+    .bh-icon{width:36px;height:36px;border-radius:10px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+      background:rgba(124,58,237,.18);}
+    .bh-body{flex:1;min-width:0}
+    .bh-title{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
+    .bh-desc{font-size:.75rem;color:var(--muted);line-height:1.45}
+    .bh-steps{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+    .bh-step{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+    .bh-step-num{width:16px;height:16px;border-radius:50%;background:rgba(124,58,237,.3);
+      font-size:.62rem;font-weight:800;color:var(--cyan);
+      display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .bh-close{width:26px;height:26px;border-radius:8px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--muted);transition:.15s;margin-top:-2px}
+    .bh-close:hover{color:var(--text);background:var(--bg4)}
+    .bh-close svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.5;
+      fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .bh-install-btn{margin-top:8px;padding:7px 14px;border:none;border-radius:8px;
+      background:linear-gradient(135deg,var(--purple),var(--blue));
+      color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;
+      transition:opacity .15s;}
+    .bh-install-btn:hover{opacity:.85}
+
+
+    /* ── Onboarding ────────────────────────────────────────────── */
+    #onboarding{
+      position:absolute;inset:0;z-index:100;
+      background:var(--bg);
+      overflow:hidden;
+      /* ob-screens and ob-welcome are all position:absolute inside here */
+    }
+
+    /* ── Welcome carousel ──────────────────────────────────────── */
+    #ob-welcome{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+    }
+    /* Skip link top-right */
+    #ob-skip{
+      position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:20px;
+      z-index:10;font-size:.8rem;color:var(--muted);padding:6px 10px;
+      background:rgba(255,255,255,.06);border-radius:20px;
+      border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:.2s;
+    }
+    #ob-skip:hover{color:var(--text)}
+
+    /* Slides track */
+    .ob-track{
+      flex:1;display:flex;
+      transition:transform .42s cubic-bezier(.4,0,.2,1);
+      will-change:transform;
+      touch-action:pan-y;
+    }
+    .ob-slide{
+      min-width:100%;width:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:80px 36px 20px;text-align:center;position:relative;overflow:hidden;
+    }
+
+    /* Per-slide glow blobs */
+    .ob-slide::before{
+      content:'';position:absolute;inset:0;pointer-events:none;opacity:.6;
+    }
+    .ob-slide[data-i="0"]::before{
+      background:radial-gradient(ellipse 70% 45% at 50% 0%, rgba(124,58,237,.5) 0%, transparent 65%);
+    }
+    .ob-slide[data-i="1"]::before{
+      background:radial-gradient(ellipse 70% 45% at 50% 0%, rgba(0,224,255,.3) 0%, transparent 65%);
+    }
+    .ob-slide[data-i="2"]::before{
+      background:radial-gradient(ellipse 70% 45% at 50% 0%, rgba(16,185,129,.3) 0%, transparent 65%);
+    }
+    .ob-slide[data-i="3"]::before{
+      background:radial-gradient(ellipse 70% 45% at 50% 0%, rgba(124,58,237,.4) 0%, transparent 55%),
+                 radial-gradient(ellipse 50% 35% at 80% 90%, rgba(0,224,255,.2) 0%, transparent 60%);
+    }
+
+    /* Illustration area */
+    .ob-illus{
+      width:200px;height:200px;margin-bottom:36px;
+      display:flex;align-items:center;justify-content:center;
+      position:relative;flex-shrink:0;
+    }
+    .ob-illus-ring{
+      position:absolute;border-radius:50%;
+    }
+    .ob-illus-ring.r1{
+      width:200px;height:200px;
+      background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);
+    }
+    .ob-illus-ring.r2{
+      width:152px;height:152px;
+      background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);
+    }
+    .ob-illus-ring.r3{
+      width:106px;height:106px;
+      background:rgba(124,58,237,.14);border:1px solid rgba(124,58,237,.3);
+    }
+    .ob-slide[data-i="1"] .ob-illus-ring{border-color:rgba(0,224,255,.25);background:rgba(0,224,255,.06)}
+    .ob-slide[data-i="1"] .ob-illus-ring.r2{background:rgba(0,224,255,.09)}
+    .ob-slide[data-i="1"] .ob-illus-ring.r3{background:rgba(0,224,255,.13)}
+    .ob-slide[data-i="2"] .ob-illus-ring{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.06)}
+    .ob-slide[data-i="2"] .ob-illus-ring.r2{background:rgba(16,185,129,.09)}
+    .ob-slide[data-i="2"] .ob-illus-ring.r3{background:rgba(16,185,129,.13)}
+    .ob-illus-icon{
+      position:relative;z-index:2;
+      filter:drop-shadow(0 0 24px rgba(124,58,237,.7));
+    }
+    .ob-slide[data-i="0"] .ob-illus-icon img{
+      width:64px;height:64px;border-radius:18px;
+      box-shadow:0 0 40px rgba(124,58,237,.6);
+    }
+    .ob-slide[data-i="1"] .ob-illus-icon{filter:drop-shadow(0 0 24px rgba(0,224,255,.6))}
+    .ob-slide[data-i="2"] .ob-illus-icon{filter:drop-shadow(0 0 24px rgba(16,185,129,.6))}
+
+    /* Text */
+    .ob-slide-title{
+      font-size:1.75rem;font-weight:900;color:#fff;
+      line-height:1.2;margin-bottom:14px;
+    }
+    .ob-slide-sub{
+      font-size:.92rem;color:var(--muted);line-height:1.75;max-width:300px;
+    }
+    .ob-slide-sub strong{color:var(--text)}
+
+    /* Feature tags */
+    .ob-tags{
+      display:flex;flex-wrap:wrap;justify-content:center;
+      gap:8px;margin-top:20px;
+    }
+    .ob-tag{
+      font-size:.72rem;font-weight:600;padding:5px 11px;
+      border-radius:20px;letter-spacing:.03em;
+    }
+    .ob-tag-purple{background:rgba(124,58,237,.18);color:#c4b5fd;border:1px solid rgba(124,58,237,.3)}
+    .ob-tag-cyan{background:rgba(0,224,255,.1);color:#67e8f9;border:1px solid rgba(0,224,255,.25)}
+    .ob-tag-green{background:rgba(16,185,129,.12);color:#6ee7b7;border:1px solid rgba(16,185,129,.25)}
+
+    /* Dots + bottom zone */
+    .ob-bottom{
+      padding:0 24px calc(20px + env(safe-area-inset-bottom,0px));
+      display:flex;flex-direction:column;align-items:center;gap:20px;flex-shrink:0;
+    }
+    .ob-dots{
+      display:flex;gap:7px;align-items:center;height:8px;
+    }
+    .ob-dot{
+      width:7px;height:7px;border-radius:50%;
+      background:rgba(255,255,255,.2);
+      transition:all .3s cubic-bezier(.4,0,.2,1);
+    }
+    .ob-dot.active{
+      width:24px;border-radius:4px;
+      background:var(--grad);
+    }
+    .ob-next-btn{
+      width:100%;padding:16px;border-radius:14px;
+      background:var(--grad);color:#fff;font-size:1rem;font-weight:700;
+      border:none;cursor:pointer;
+      box-shadow:0 4px 24px rgba(124,58,237,.4);
+      transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .ob-next-btn:hover{box-shadow:0 4px 32px rgba(0,224,255,.45);transform:translateY(-1px)}
+    .ob-next-btn:active{transform:translateY(0)}
+
+    /* Last slide action area */
+    .ob-action-area{
+      display:flex;flex-direction:column;gap:11px;width:100%;
+    }
+    .ob-note{
+      font-size:.73rem;color:var(--muted);text-align:center;margin-top:4px;
+    }
+    .ob-note a{color:var(--cyan)}
+
+    /* Other ob-screens: absolute fill so they sit on same layer as carousel */
+    .ob-screen{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;
+      padding:24px 24px calc(40px + env(safe-area-inset-bottom,0px));
+      overflow-y:auto;-webkit-overflow-scrolling:touch;
+      background:var(--bg);
+      padding-top:calc(24px + env(safe-area-inset-top,0px));
+    }
+    .ob-logo{display:flex;align-items:center;gap:10px;margin-bottom:40px}
+    .ob-logo img{width:36px;height:36px;border-radius:10px}
+    .ob-logo span{font-size:1.1rem;font-weight:800;letter-spacing:.05em;color:#fff}
+    .ob-title{font-size:1.6rem;font-weight:900;color:#fff;line-height:1.2;margin-bottom:10px}
+    .ob-sub{font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:32px}
+    .ob-actions{display:flex;flex-direction:column;gap:12px;margin-top:auto}
+
+    /* ── Mnemonic grid ─────────────────────────────────────────── */
+    .mn-grid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:12px;padding:16px;margin:16px 0;
+    }
+    .mn-word{
+      background:var(--bg4);border-radius:8px;padding:6px 8px;
+      display:flex;align-items:center;gap:6px;
+    }
+    .mn-num{font-size:.68rem;color:var(--muted);min-width:14px;text-align:right}
+    .mn-w{font-size:.82rem;font-weight:600;color:var(--text)}
+    .mn-blur .mn-word{filter:blur(5px);user-select:none}
+    .mn-blur.shown .mn-word{filter:none;user-select:auto}
+
+    /* ── Buttons ───────────────────────────────────────────────── */
+    .btn{
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      padding:14px 20px;border-radius:12px;font-weight:700;
+      font-size:.9rem;transition:.2s;border:none;cursor:pointer;
+      width:100%;
+    }
+    .btn-primary{background:var(--grad);color:#fff;
+      box-shadow:0 0 20px rgba(124,58,237,.35)}
+    .btn-primary:hover{box-shadow:0 0 30px rgba(0,224,255,.4);transform:translateY(-1px)}
+    .btn-primary:disabled{opacity:.5;transform:none;pointer-events:none}
+    .btn-outline{background:transparent;color:var(--text);
+      border:1px solid var(--border2)}
+    .btn-outline:hover{border-color:var(--cyan);color:var(--cyan)}
+    .btn-ghost{background:transparent;color:var(--muted);font-weight:500}
+    .btn-ghost:hover{color:var(--text)}
+    .btn-danger{background:rgba(248,113,113,.12);color:var(--red);
+      border:1px solid rgba(248,113,113,.25)}
+    .btn-sm{padding:8px 14px;font-size:.8rem;border-radius:9px;width:auto}
+    .btn-icon{
+      width:36px;height:36px;border-radius:10px;padding:0;
+      background:var(--bg3);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;
+      color:var(--muted);transition:.2s;flex-shrink:0;width:auto;
+    }
+    .btn-icon:hover{color:var(--cyan);border-color:var(--cyan)}
+    .btn-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;
+      stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+    /* ── Inputs ────────────────────────────────────────────────── */
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:.75rem;font-weight:600;
+      color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+    .field input,.field textarea{
+      width:100%;background:var(--bg3);border:1px solid var(--border);
+      border-radius:10px;padding:12px 14px;color:var(--text);
+      font-size:.92rem;outline:none;transition:.2s;
+      -webkit-appearance:none;appearance:none;
+    }
+    .field input:focus,.field textarea:focus{border-color:var(--purple)}
+    .field textarea{resize:vertical;min-height:80px;font-size:.85rem;line-height:1.6}
+    .field .input-row{display:flex;gap:8px;align-items:center}
+    .field .input-row input{flex:1}
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card{
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:var(--r);padding:16px;margin:0 16px 12px;
+    }
+    .card-title{
+      font-size:.72rem;font-weight:700;color:var(--muted);
+      letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;
+    }
+
+    /* ── Home tab ──────────────────────────────────────────────── */
+    .home-hero{
+      padding:24px 20px 20px;text-align:center;
+    }
+    .home-avatar{
+      width:56px;height:56px;border-radius:18px;margin:0 auto 12px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.4rem;font-weight:800;color:#fff;
+      box-shadow:0 0 20px rgba(124,58,237,.3);
+    }
+    .home-acct-name{font-size:.85rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+    .home-addr{
+      display:inline-flex;align-items:center;gap:6px;
+      font-size:.78rem;color:var(--muted2);font-family:monospace;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:8px;padding:4px 10px;cursor:pointer;transition:.2s;
+    }
+    .home-addr:hover{border-color:var(--border2);color:var(--muted)}
+    .home-addr svg{width:12px;height:12px;stroke:currentColor;fill:none;
+      stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .balance-wrap{padding:16px 20px 8px}
+    .balance-label{font-size:.72rem;font-weight:600;color:var(--muted);
+      letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+    .balance-main{font-size:2.4rem;font-weight:900;color:#fff;
+      letter-spacing:-.02em;line-height:1}
+    .balance-ticker{font-size:1.1rem;font-weight:600;color:var(--muted);margin-left:4px}
+    .balance-feathers{font-size:.78rem;color:var(--muted);margin-top:4px}
+
+    /* Action buttons */
+    .action-grid{display:flex;gap:12px;padding:16px 16px 4px}
+    .action-btn{
+      flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:14px;padding:14px 8px;transition:.2s;
+    }
+    .action-btn:hover{border-color:var(--border2);transform:translateY(-2px)}
+    .action-btn .icon{
+      width:42px;height:42px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .action-btn .icon svg{width:20px;height:20px;stroke:currentColor;fill:none;
+      stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .action-btn span{font-size:.75rem;font-weight:600;color:var(--muted)}
+    .action-send .icon{background:rgba(124,58,237,.15);color:var(--purple)}
+    .action-recv .icon{background:rgba(0,224,255,.1);color:var(--cyan)}
+    .action-hist .icon{background:rgba(16,185,129,.1);color:var(--green)}
+    .action-adv .icon{background:rgba(245,158,11,.1);color:var(--gold)}
+
+    /* Asset list */
+    .asset-row{
+      display:flex;align-items:center;gap:12px;
+      padding:14px 16px;border-radius:12px;
+      transition:.2s;cursor:default;
+    }
+    .asset-row:hover{background:rgba(255,255,255,.03)}
+    .asset-icon{
+      width:40px;height:40px;border-radius:12px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(124,58,237,.12);border:1px solid var(--border);
+    }
+    .asset-icon img{width:24px;height:24px;object-fit:contain}
+    .asset-name{font-size:.9rem;font-weight:700;color:var(--text)}
+    .asset-network{font-size:.72rem;color:var(--muted)}
+    .asset-bal{text-align:right}
+    .asset-spw{font-size:.92rem;font-weight:700;color:var(--text)}
+    .asset-usd{font-size:.72rem;color:var(--muted)}
+
+    /* ── Send tab ──────────────────────────────────────────────── */
+    .send-wrap{padding:20px 16px}
+    .send-wrap h2{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:20px}
+    .fee-row{display:flex;align-items:center;justify-content:space-between;
+      font-size:.8rem;color:var(--muted);margin-bottom:16px}
+    .fee-row b{color:var(--text)}
+    .summary-box{
+      background:var(--bg4);border:1px solid var(--border);
+      border-radius:12px;padding:14px 16px;margin-bottom:16px;
+    }
+    .sum-row{display:flex;justify-content:space-between;align-items:center;
+      font-size:.85rem;padding:4px 0}
+    .sum-row:not(:last-child){border-bottom:1px solid var(--border)}
+    .sum-row .k{color:var(--muted)}
+    .sum-row .v{font-weight:600;color:var(--text);text-align:right;max-width:60%}
+    .sum-total .k,.sum-total .v{color:#fff;font-weight:800}
+    .stealth-fields{
+      background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);
+      border-radius:12px;padding:14px;margin-bottom:16px;
+    }
+    .stealth-fields .field{margin-bottom:10px}
+    .stealth-fields .field:last-child{margin-bottom:0}
+
+    /* ── Receive tab ───────────────────────────────────────────── */
+    .receive-wrap{padding:24px 16px;display:flex;flex-direction:column;align-items:center}
+    .receive-wrap h2{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:24px;align-self:flex-start}
+    .qr-box{
+      background:#fff;border-radius:18px;padding:16px;
+      box-shadow:0 0 40px rgba(124,58,237,.2);margin-bottom:20px;
+    }
+    #qr-canvas{display:block}
+    .recv-addr-box{
+      width:100%;background:var(--bg3);border:1px solid var(--border);
+      border-radius:12px;padding:14px 16px;display:flex;
+      align-items:center;gap:10px;margin-bottom:12px;
+    }
+    .recv-addr-text{
+      flex:1;font-family:monospace;font-size:.78rem;
+      color:var(--text);word-break:break-all;line-height:1.5;
+    }
+    .recv-note{font-size:.8rem;color:var(--muted);text-align:center;line-height:1.6}
+
+    /* ── Activity tab ──────────────────────────────────────────── */
+    .activity-wrap{padding:16px}
+    .activity-wrap h2{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:16px}
+    .tx-item{
+      display:flex;align-items:center;gap:12px;
+      padding:12px 0;border-bottom:1px solid var(--border);
+    }
+    .tx-item:last-child{border-bottom:none}
+    .tx-icon{
+      width:40px;height:40px;border-radius:12px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .tx-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;
+      stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+    .tx-in .tx-icon{background:rgba(16,185,129,.12);color:var(--green)}
+    .tx-out .tx-icon{background:rgba(248,113,113,.1);color:var(--red)}
+    .tx-mine .tx-icon{background:rgba(245,158,11,.1);color:var(--gold)}
+    .tx-label{font-size:.88rem;font-weight:600;color:var(--text)}
+    .tx-meta{font-size:.72rem;color:var(--muted);margin-top:2px}
+    .tx-meta span{font-family:monospace}
+    .tx-amt{text-align:right;flex-shrink:0}
+    .tx-amt-val{font-size:.88rem;font-weight:700}
+    .tx-in .tx-amt-val{color:var(--green)}
+    .tx-out .tx-amt-val{color:var(--red)}
+    .tx-mine .tx-amt-val{color:var(--gold)}
+    .tx-block{font-size:.7rem;color:var(--muted);margin-top:2px}
+    .pagination{display:flex;align-items:center;justify-content:space-between;
+      padding:14px 0;gap:8px}
+    .pagination .page-info{font-size:.8rem;color:var(--muted)}
+    .activity-search{
+      display:flex;gap:8px;margin-bottom:16px;
+    }
+    .activity-search input{
+      flex:1;background:var(--bg3);border:1px solid var(--border);
+      border-radius:10px;padding:10px 14px;color:var(--text);
+      font-size:.88rem;outline:none;transition:.2s;
+      -webkit-appearance:none;
+    }
+    .activity-search input:focus{border-color:var(--purple)}
+
+    /* ── Settings tab ──────────────────────────────────────────── */
+    .settings-wrap{padding:16px}
+    .settings-wrap h2{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:16px}
+    .settings-section{margin-bottom:24px}
+    .settings-section-title{
+      font-size:.72rem;font-weight:700;color:var(--muted);
+      letter-spacing:.07em;text-transform:uppercase;
+      margin-bottom:10px;padding:0 4px;
+    }
+    .settings-item{
+      display:flex;align-items:center;gap:12px;
+      padding:13px 14px;background:var(--bg3);
+      border:1px solid var(--border);border-radius:12px;
+      margin-bottom:8px;transition:.2s;cursor:pointer;
+    }
+    .settings-item:hover{border-color:var(--border2)}
+    .settings-item .si-icon{
+      width:36px;height:36px;border-radius:10px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .settings-item .si-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;
+      stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .settings-item .si-label{flex:1;font-size:.88rem;font-weight:600}
+    .settings-item .si-sub{font-size:.75rem;color:var(--muted);margin-top:1px}
+    .settings-item .si-arrow{color:var(--muted)}
+    .settings-item .si-arrow svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+
+    /* Account list in settings */
+    .account-item{
+      display:flex;align-items:center;gap:12px;
+      padding:12px 14px;background:var(--bg3);
+      border:1px solid var(--border);border-radius:12px;
+      margin-bottom:8px;transition:.2s;
+    }
+    .account-item.active-acct{border-color:var(--purple);
+      background:rgba(124,58,237,.08)}
+    .acct-avatar{
+      width:36px;height:36px;border-radius:10px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:.88rem;font-weight:800;color:#fff;
+    }
+    .acct-info{flex:1;min-width:0}
+    .acct-info .name{font-size:.88rem;font-weight:700}
+    .acct-info .addr{font-size:.72rem;color:var(--muted);font-family:monospace;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .acct-check{color:var(--cyan)}
+    .acct-check svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+    /* ── Sheet (slide-up modal) ─────────────────────────────────── */
+    #sheet-overlay{
+      position:fixed;inset:0;z-index:200;
+      background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+      opacity:0;pointer-events:none;transition:opacity .25s;
+    }
+    #sheet-overlay.open{opacity:1;pointer-events:auto}
+    #sheet{
+      position:fixed;bottom:0;left:50%;transform:translate(-50%,100%);
+      width:100%;max-width:430px;z-index:201;
+      background:var(--bg2);border-radius:20px 20px 0 0;
+      border:1px solid var(--border);border-bottom:none;
+      transition:transform .3s cubic-bezier(.32,0,.67,0);
+      padding-bottom:var(--safe-b);max-height:90vh;overflow-y:auto;
+    }
+    #sheet.open{transform:translate(-50%,0)}
+    .sheet-handle{
+      width:36px;height:4px;background:var(--bg4);border-radius:2px;
+      margin:12px auto 16px;
+    }
+    .sheet-title{font-size:1rem;font-weight:800;color:#fff;
+      padding:0 20px 16px;border-bottom:1px solid var(--border)}
+    .sheet-body{padding:16px 20px}
+
+    /* ── Toast ─────────────────────────────────────────────────── */
+    #toast{
+      position:fixed;bottom:calc(var(--nh) + var(--safe-b) + 16px);
+      left:50%;transform:translateX(-50%) translateY(20px);
+      z-index:300;background:var(--bg4);border:1px solid var(--border2);
+      border-radius:10px;padding:10px 18px;font-size:.84rem;font-weight:600;
+      white-space:nowrap;pointer-events:none;opacity:0;
+      transition:opacity .2s,transform .2s;
+    }
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    #toast.ok{border-color:rgba(16,185,129,.4);color:var(--green)}
+    #toast.err{border-color:rgba(248,113,113,.35);color:var(--red)}
+
+    /* ── Alerts ────────────────────────────────────────────────── */
+    .alert{border-radius:10px;padding:10px 14px;font-size:.84rem;line-height:1.6;margin-bottom:12px}
+    .alert-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--red)}
+    .alert-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--green)}
+    .alert-info{background:rgba(99,102,241,.1);border:1px solid var(--border2);color:var(--cyan)}
+    .alert-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:var(--gold)}
+    #global-msg{padding:0 16px}
+
+    /* ── Toggle switch ─────────────────────────────────────────── */
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;
+      padding:10px 0;border-bottom:1px solid var(--border)}
+    .toggle-row:last-child{border-bottom:none}
+    .toggle-label{font-size:.88rem;font-weight:600}
+    .toggle-sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+    .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-track{
+      position:absolute;inset:0;background:var(--bg4);border:1px solid var(--border2);
+      border-radius:12px;transition:.2s;cursor:pointer;
+    }
+    .toggle-track::before{
+      content:'';position:absolute;width:18px;height:18px;
+      top:2px;left:2px;border-radius:50%;background:var(--muted);
+      transition:.2s;
+    }
+    .toggle input:checked + .toggle-track{background:var(--purple);border-color:var(--purple)}
+    .toggle input:checked + .toggle-track::before{transform:translateX(20px);background:#fff}
+
+    /* ── Divider ───────────────────────────────────────────────── */
+    .divider{height:1px;background:var(--border);margin:8px 16px}
+
+    /* ── Empty state ───────────────────────────────────────────── */
+    .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:.88rem}
+    .empty-state svg{width:40px;height:40px;stroke:var(--muted2);fill:none;
+      stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 12px}
+
+    /* ── Stealth badge ─────────────────────────────────────────── */
+    .stealth-badge{
+      display:inline-flex;align-items:center;gap:5px;
+      background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);
+      color:var(--gold);border-radius:6px;padding:3px 8px;
+      font-size:.72rem;font-weight:700;letter-spacing:.04em;
+    }
+
+    /* ── Advanced panel ─────────────────────────────────────────── */
+    #adv-panel{
+      background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.15);
+      border-radius:12px;padding:16px;margin-bottom:16px;
+    }
+    #adv-panel h4{font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:12px}
+
+    @media(max-width:390px){
+      .balance-main{font-size:2rem}
+      .ob-title{font-size:1.4rem}
+    }
+    /* ── Payment Request overlay ── */
+    #pay-overlay{position:fixed;inset:0;background:#0a0e1a;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+    #pay-overlay.hidden{display:none}
+    .pay-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:20px}
+    .pay-title{font-size:1.15rem;font-weight:800;color:#fff;text-align:center}
+    .pay-origin{font-size:.78rem;color:var(--muted);text-align:center;margin-top:-12px}
+    .pay-amount-big{font-size:2.2rem;font-weight:900;color:var(--purple);text-align:center;letter-spacing:-.02em}
+    .pay-amount-sub{font-size:.82rem;color:var(--muted);text-align:center;margin-top:-14px}
+    .pay-row{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:10px 14px;background:var(--bg3);border-radius:10px}
+    .pay-row-k{color:var(--muted)}
+    .pay-row-v{color:#fff;font-weight:600;font-family:monospace;font-size:.8rem;word-break:break-all;text-align:right;max-width:60%}
+    .pay-actions{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+    .pay-status{font-size:.85rem;text-align:center;min-height:20px}
+  </style>
+</head>
+<body style="background:#0a0e1a">
+
+<!-- ── Launch splash: visible immediately, hidden once JS ready ── -->
+<div id="launch-splash" style="position:fixed;inset:0;background:#0a0e1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s">
+  <img src="/apple-touch-icon.png" width="72" height="72" style="border-radius:18px;margin-bottom:20px;opacity:.95" alt="">
+  <div style="font-size:.8rem;color:#6b7280;letter-spacing:.12em;text-transform:uppercase">SPW Wallet</div>
+</div>
+
+<!-- ── Payment Request overlay ──────────────────────────────────── -->
+<div id="pay-overlay" class="hidden">
+  <div class="pay-card">
+    <div>
+      <div class="pay-title">Payment Request</div>
+      <div class="pay-origin" id="pay-origin"></div>
+    </div>
+    <div>
+      <div class="pay-amount-big" id="pay-amount-spw"></div>
+      <div class="pay-amount-sub" id="pay-amount-feat"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="pay-row"><span class="pay-row-k">To</span><span class="pay-row-v" id="pay-to"></span></div>
+      <div class="pay-row" id="pay-label-row" style="display:none"><span class="pay-row-k">Label</span><span class="pay-row-v" id="pay-label"></span></div>
+      <div class="pay-row"><span class="pay-row-k">Fee</span><span class="pay-row-v">0.0001 SPW</span></div>
+    </div>
+    <div class="pay-status" id="pay-status"></div>
+    <div class="pay-actions">
+      <button class="btn btn-primary" id="pay-confirm-btn" onclick="payConfirm()">Confirm Payment</button>
+      <button class="btn btn-outline" onclick="payCancel()">Cancel</button>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);text-align:center">Your private key never leaves this wallet.</div>
+  </div>
+</div>
+
+<!-- ── SVG sprites ───────────────────────────────────────────────── -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ic-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="ic-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+  <symbol id="ic-recv" viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></symbol>
+  <symbol id="ic-activity" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+  <symbol id="ic-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="ic-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="ic-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="ic-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+  <symbol id="ic-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="ic-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="ic-download" viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="ic-key" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+  <symbol id="ic-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="ic-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="ic-arrow-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
+  <symbol id="ic-arrow-down" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+</svg>
+
+<div id="app">
+
+  <!-- ══ ONBOARDING ══════════════════════════════════════════════ -->
+  <div id="onboarding">
+
+    <!-- Welcome carousel -->
+    <div id="ob-welcome">
+      <button id="ob-skip" onclick="obWelcomeGoTo(3)">Skip</button>
+
+      <!-- Slides -->
+      <div class="ob-track" id="ob-track">
+
+        <!-- Slide 0: Welcome -->
+        <div class="ob-slide" data-i="0">
+          <div class="ob-illus">
+            <div class="ob-illus-ring r1"></div>
+            <div class="ob-illus-ring r2"></div>
+            <div class="ob-illus-ring r3"></div>
+            <div class="ob-illus-icon">
+              <img src="/assets/spw.png" alt="SPW">
+            </div>
+          </div>
+          <div class="ob-slide-title">Welcome to<br><span class="grad-text">SPW Wallet</span></div>
+          <div class="ob-slide-sub">Your self-custody gateway to the <strong>Sparrow Network</strong>. Fast, private, open source.</div>
+          <div class="ob-tags">
+            <span class="ob-tag ob-tag-purple">SPW Network</span>
+            <span class="ob-tag ob-tag-cyan">Open Source</span>
+            <span class="ob-tag ob-tag-green">MIT License</span>
+          </div>
+        </div>
+
+        <!-- Slide 1: Self-custody -->
+        <div class="ob-slide" data-i="1">
+          <div class="ob-illus">
+            <div class="ob-illus-ring r1"></div>
+            <div class="ob-illus-ring r2"></div>
+            <div class="ob-illus-ring r3"></div>
+            <div class="ob-illus-icon">
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M26 4L8 12v14c0 10.5 7.7 20.3 18 23 10.3-2.7 18-12.5 18-23V12L26 4z" fill="rgba(0,224,255,.15)" stroke="#00e0ff" stroke-width="1.5"/>
+                <path d="M26 14L14 19v9c0 6.6 4.8 12.8 12 14.5C33.2 40.8 38 34.6 38 28v-9L26 14z" fill="rgba(0,224,255,.12)" stroke="#67e8f9" stroke-width="1.2"/>
+                <path d="M21 26l3.5 3.5L31 22" stroke="#00e0ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ob-slide-title">Truly<br><span style="color:#00e0ff">Self-Custody</span></div>
+          <div class="ob-slide-sub">Your keys are generated <strong>locally in your browser</strong>. They never touch a server. Only you control your funds.</div>
+          <div class="ob-tags">
+            <span class="ob-tag ob-tag-cyan">Keys stay local</span>
+            <span class="ob-tag ob-tag-cyan">BIP39 Mnemonic</span>
+            <span class="ob-tag ob-tag-cyan">HD Wallet</span>
+          </div>
+        </div>
+
+        <!-- Slide 2: Privacy -->
+        <div class="ob-slide" data-i="2">
+          <div class="ob-illus">
+            <div class="ob-illus-ring r1"></div>
+            <div class="ob-illus-ring r2"></div>
+            <div class="ob-illus-ring r3"></div>
+            <div class="ob-illus-icon">
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="26" cy="26" rx="20" ry="11" fill="rgba(16,185,129,.12)" stroke="#10b981" stroke-width="1.5"/>
+                <circle cx="26" cy="26" r="5.5" fill="rgba(16,185,129,.25)" stroke="#6ee7b7" stroke-width="1.5"/>
+                <circle cx="26" cy="26" r="2.5" fill="#10b981"/>
+                <line x1="6" y1="6" x2="46" y2="46" stroke="rgba(16,185,129,.3)" stroke-width="1" stroke-dasharray="3 3"/>
+                <circle cx="12" cy="38" r="3" fill="rgba(16,185,129,.2)" stroke="#10b981" stroke-width="1"/>
+                <circle cx="40" cy="14" r="3" fill="rgba(16,185,129,.2)" stroke="#10b981" stroke-width="1"/>
+                <path d="M15 38 Q26 26 39 14" stroke="rgba(16,185,129,.4)" stroke-width="1" stroke-dasharray="2 3" fill="none"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ob-slide-title">Built-in<br><span style="color:#10b981">Privacy</span></div>
+          <div class="ob-slide-sub">Optional <strong>ECDH stealth addresses</strong>. Each payment goes to a unique one-time address — unlinkable on-chain.</div>
+          <div class="ob-tags">
+            <span class="ob-tag ob-tag-green">Stealth Addresses</span>
+            <span class="ob-tag ob-tag-green">ECDH Protocol</span>
+            <span class="ob-tag ob-tag-green">On-chain Privacy</span>
+          </div>
+        </div>
+
+        <!-- Slide 3: Get Started -->
+        <div class="ob-slide" data-i="3" style="justify-content:flex-start;padding-top:72px">
+          <div style="margin-bottom:32px">
+            <img src="/assets/spw.png" alt="SPW" style="width:52px;height:52px;border-radius:14px;box-shadow:0 0 30px rgba(124,58,237,.6)">
+          </div>
+          <div class="ob-slide-title" style="font-size:1.6rem;margin-bottom:10px">Get Started</div>
+          <div class="ob-slide-sub" style="margin-bottom:32px">Create a new wallet or import an existing one with your recovery phrase.</div>
+          <div class="ob-action-area">
+            <button class="btn btn-primary" style="padding:17px;font-size:1rem;border-radius:14px" onclick="obShow('ob-create-a')">
+              <svg width="18" height="18"><use href="#ic-plus"/></svg>
+              Create New Wallet
+            </button>
+            <button class="btn btn-outline" style="padding:17px;font-size:1rem;border-radius:14px" onclick="obShow('ob-import')">
+              <svg width="18" height="18"><use href="#ic-download"/></svg>
+              Import Existing Wallet
+            </button>
+          </div>
+          <div class="ob-note" style="margin-top:20px">
+            Open source &amp; auditable ·
+            <a href="https://github.com/otisaipro/spw-wallet" target="_blank" rel="noopener">GitHub ↗</a>
+          </div>
+        </div>
+
+      </div><!-- /ob-track -->
+
+      <!-- Dots + Next button -->
+      <div class="ob-bottom" id="ob-bottom">
+        <div class="ob-dots" id="ob-dots">
+          <div class="ob-dot active" data-d="0"></div>
+          <div class="ob-dot" data-d="1"></div>
+          <div class="ob-dot" data-d="2"></div>
+          <div class="ob-dot" data-d="3"></div>
+        </div>
+        <button class="ob-next-btn" id="ob-next-btn" onclick="obWelcomeNext()">
+          Next
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div><!-- /ob-welcome -->
+
+    <!-- Create A: generate phrase -->
+    <div id="ob-create-a" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="obShow('ob-welcome')">← Back</button>
+      <div class="ob-title">Recovery Phrase</div>
+      <div class="ob-sub">Write down these 12 words in order and store them safely. This is the only way to recover your wallet.</div>
+      <div id="ob-mn-grid" class="mn-grid mn-blur"></div>
+      <button class="btn btn-outline btn-sm" style="width:auto;align-self:center;margin-bottom:16px" onclick="obRevealPhrase()">
+        <svg width="13" height="13"><use href="#ic-eye"/></svg>
+        Reveal Phrase
+      </button>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--muted);margin-bottom:24px">
+        <input type="checkbox" id="ob-backup-check" onchange="document.getElementById('ob-create-btn').disabled=!this.checked" style="width:18px;height:18px;margin-top:2px;accent-color:var(--purple)">
+        I have written down my recovery phrase and stored it safely.
+      </label>
+      <div class="ob-actions">
+        <button id="ob-create-btn" class="btn btn-primary" onclick="obFinishCreate()" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Import -->
+    <div id="ob-import" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="obShow('ob-welcome')">← Back</button>
+      <div class="ob-title">Import Wallet</div>
+      <div class="ob-sub">Enter your 12-word recovery phrase to restore your wallet.</div>
+      <div class="field">
+        <label>Account Name</label>
+        <input id="ob-import-name" placeholder="e.g. My Main Wallet" maxlength="30">
+      </div>
+      <div class="field">
+        <label>Recovery Phrase</label>
+        <textarea id="ob-import-words" placeholder="word1 word2 word3 … word12" rows="4"></textarea>
+      </div>
+      <div class="field">
+        <label>Passphrase (optional)</label>
+        <input type="password" id="ob-import-pass" placeholder="Leave blank if none">
+      </div>
+      <div id="ob-import-msg"></div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" onclick="obImport()">Import Wallet</button>
+        <div style="text-align:center;color:var(--muted);font-size:.78rem">or</div>
+        <button class="btn btn-outline btn-sm" style="width:auto;align-self:center" onclick="obShow('ob-import-key')">Import with Private Key</button>
+      </div>
+    </div>
+
+    <!-- Import by key -->
+    <div id="ob-import-key" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="obShow('ob-import')">← Back</button>
+      <div class="ob-title">Import by Key</div>
+      <div class="ob-sub">Enter your raw spend key (64 hex characters).</div>
+      <div class="field">
+        <label>Account Name</label>
+        <input id="ob-import-key-name" placeholder="e.g. Hardware Key" maxlength="30">
+      </div>
+      <div class="field">
+        <label>Spend Private Key</label>
+        <input id="ob-import-spendkey" placeholder="64 hex characters">
+      </div>
+      <div class="field">
+        <label>View Key (optional)</label>
+        <input id="ob-import-viewkey" placeholder="64 hex characters or leave blank">
+      </div>
+      <div id="ob-import-key-msg"></div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" onclick="obImportKey()">Import</button>
+      </div>
+    </div>
+
+    <!-- Add account (from settings) -->
+    <div id="ob-add-account" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="closeAddAccount()">← Back</button>
+      <div class="ob-title">Add Account</div>
+      <div class="ob-sub">Create a new account or import an existing one.</div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" onclick="obShow('ob-add-create-a')">
+          <svg width="16" height="16"><use href="#ic-plus"/></svg>
+          Create New Account
+        </button>
+        <button class="btn btn-outline" onclick="obShow('ob-add-import')">
+          <svg width="16" height="16"><use href="#ic-download"/></svg>
+          Import Account
+        </button>
+      </div>
+    </div>
+
+    <!-- Add account - create -->
+    <div id="ob-add-create-a" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="obShow('ob-add-account')">← Back</button>
+      <div class="ob-title">New Account Phrase</div>
+      <div class="ob-sub">This account has its own independent recovery phrase.</div>
+      <div id="ob-add-mn-grid" class="mn-grid mn-blur"></div>
+      <button class="btn btn-outline btn-sm" style="width:auto;align-self:center;margin-bottom:16px" onclick="obRevealAddPhrase()">
+        <svg width="13" height="13"><use href="#ic-eye"/></svg>
+        Reveal Phrase
+      </button>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--muted);margin-bottom:24px">
+        <input type="checkbox" id="ob-add-backup-check" onchange="document.getElementById('ob-add-create-btn').disabled=!this.checked" style="width:18px;height:18px;margin-top:2px;accent-color:var(--purple)">
+        I have written down my recovery phrase.
+      </label>
+      <div class="ob-actions">
+        <button id="ob-add-create-btn" class="btn btn-primary" onclick="obFinishAddCreate()" disabled>Add Account →</button>
+      </div>
+    </div>
+
+    <!-- Add account - import -->
+    <div id="ob-add-import" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="obShow('ob-add-account')">← Back</button>
+      <div class="ob-title">Import Account</div>
+      <div class="ob-sub">Enter the recovery phrase for this account.</div>
+      <div class="field">
+        <label>Account Name</label>
+        <input id="ob-add-import-name" placeholder="e.g. Savings" maxlength="30">
+      </div>
+      <div class="field">
+        <label>Recovery Phrase</label>
+        <textarea id="ob-add-import-words" placeholder="word1 word2 … word12" rows="4"></textarea>
+      </div>
+      <div class="field">
+        <label>Passphrase (optional)</label>
+        <input type="password" id="ob-add-import-pass" placeholder="Leave blank if none">
+      </div>
+      <div id="ob-add-import-msg"></div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" onclick="obAddImport()">Import Account</button>
+        <button class="btn btn-outline btn-sm" style="width:auto;align-self:center" onclick="obShow('ob-add-import-key')">Import with Private Key</button>
+      </div>
+    </div>
+
+    <!-- Add account - import by private key -->
+    <div id="ob-add-import-key" class="ob-screen hidden">
+      <button class="btn-ghost" style="align-self:flex-start;margin-bottom:16px;font-size:.85rem" onclick="obShow('ob-add-import')">← Back</button>
+      <div class="ob-title">Import by Key</div>
+      <div class="ob-sub">Enter your raw spend key (64 hex characters).</div>
+      <div class="field">
+        <label>Account Name</label>
+        <input id="ob-add-import-key-name" placeholder="e.g. Miner Wallet" maxlength="30">
+      </div>
+      <div class="field">
+        <label>Spend Private Key</label>
+        <input id="ob-add-import-spendkey" placeholder="64 hex characters">
+      </div>
+      <div class="field">
+        <label>View Key (optional)</label>
+        <input id="ob-add-import-viewkey" placeholder="64 hex characters or leave blank">
+      </div>
+      <div id="ob-add-import-key-msg"></div>
+      <div class="ob-actions">
+        <button class="btn btn-primary" onclick="obAddImportKey()">Import Account</button>
+      </div>
+    </div>
+
+  </div><!-- /onboarding -->
+
+  <!-- ══ MAIN APP ════════════════════════════════════════════════ -->
+  <div id="main-app" class="hidden" style="display:flex;flex-direction:column">
+
+    <!-- Header -->
+    <div id="hdr">
+      <div class="hdr-network">
+        <div class="dot"></div>
+        SPW MAINNET
+      </div>
+      <button id="hdr-account-btn" onclick="openAccountSheet()">
+        <div id="hdr-avatar" class="hdr-avatar"></div>
+        <span id="hdr-acct-name" class="hdr-acct-name">Account</span>
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button id="hdr-settings-btn" onclick="showTab('settings')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><use href="#ic-settings"/></svg>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- HOME TAB -->
+      <div id="tab-home" class="tab-panel">
+        <div id="global-msg"></div>
+        <div class="home-hero fade-up">
+          <div id="home-avatar" class="home-avatar"></div>
+          <div id="home-acct-name" class="home-acct-name"></div>
+          <div id="home-addr" class="home-addr" onclick="copyAddress()">
+            <span id="home-addr-text">—</span>
+            <svg width="12" height="12"><use href="#ic-copy"/></svg>
+          </div>
+        </div>
+        <div class="balance-wrap fade-up">
+          <div class="balance-label">Total Balance</div>
+          <div>
+            <span class="balance-main" id="home-balance">—</span>
+            <span class="balance-ticker">SPW</span>
+          </div>
+          <div class="balance-feathers" id="home-feathers"></div>
+        </div>
+        <div class="action-grid fade-up">
+          <button class="action-btn action-send" onclick="showTab('send')">
+            <div class="icon"><svg><use href="#ic-send"/></svg></div>
+            <span>Send</span>
+          </button>
+          <button class="action-btn action-recv" onclick="showTab('receive')">
+            <div class="icon"><svg><use href="#ic-recv"/></svg></div>
+            <span>Receive</span>
+          </button>
+          <button class="action-btn action-hist" onclick="showTab('activity')">
+            <div class="icon"><svg><use href="#ic-activity"/></svg></div>
+            <span>History</span>
+          </button>
+          <button id="adv-action-btn" class="action-btn action-adv hidden" onclick="showTab('send');setTimeout(()=>openAdvSend(),100)">
+            <div class="icon"><svg><use href="#ic-shield"/></svg></div>
+            <span>Private</span>
+          </button>
+        </div>
+        <div class="divider"></div>
+        <div style="padding:12px 16px 4px">
+          <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px">Assets</div>
+          <div class="asset-row">
+            <div class="asset-icon"><img src="/assets/spw.png" alt="SPW" onerror="this.style.display='none'"></div>
+            <div style="flex:1">
+              <div class="asset-name">Sparrow</div>
+              <div class="asset-network">SPW · Mainnet</div>
+            </div>
+            <div class="asset-bal">
+              <div class="asset-spw" id="asset-spw-bal">—</div>
+              <div class="asset-usd">PoW · UTXO</div>
+            </div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div style="padding:12px 16px 4px;flex:1;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase">Recent Transactions</div>
+            <button class="btn-ghost" style="font-size:.78rem;padding:4px 8px" onclick="showTab('activity')">View All →</button>
+          </div>
+          <div id="home-recent-txs" style="flex:1">
+            <div class="empty-state" style="padding:20px">
+              <svg><use href="#ic-activity"/></svg>
+              No recent transactions
+            </div>
+          </div>
+        </div>
+      </div><!-- /tab-home -->
+
+      <!-- SEND TAB -->
+      <div id="tab-send" class="tab-panel hidden">
+        <div class="send-wrap">
+          <h2>Send SPW</h2>
+          <div id="send-adv-toggle" style="margin-bottom:16px">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Private Send <span class="stealth-badge">STEALTH</span></div>
+                <div class="toggle-sub" id="stealth-sub" style="display:none">Recipient identity hidden on-chain via ECDH stealth address</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="priv-toggle" onchange="togglePrivMode()">
+                <div class="toggle-track"></div>
+              </label>
+            </div>
+          </div>
+          <div id="send-adv-panel" class="hidden">
+            <div class="stealth-fields">
+              <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:10px">
+                Recipient's public keys (from their wallet)
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label>Spend Public Key</label>
+                <input id="send-spend-pubkey" placeholder="03… (66 hex chars)">
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label>View Public Key</label>
+                <input id="send-view-pubkey" placeholder="03… (66 hex chars)">
+              </div>
+            </div>
+          </div>
+          <div id="send-normal-panel">
+            <div class="field">
+              <label>Recipient Address</label>
+              <input id="send-to" placeholder="D… (SPW address)">
+            </div>
+          </div>
+          <div class="field">
+            <label>Amount (SPW)</label>
+            <div class="input-row">
+              <input type="number" id="send-amount" placeholder="0.00000000" step="0.00000001" min="0">
+              <button class="btn-icon btn-sm" onclick="setMaxAmount()" title="Max">MAX</button>
+            </div>
+          </div>
+          <div class="fee-row">
+            <span>Network Fee</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="number" id="send-fee" value="0.0001" step="0.0001" style="width:110px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 8px;color:var(--text);text-align:right">
+              <span>SPW</span>
+            </div>
+          </div>
+          <div id="send-summary" class="summary-box hidden">
+            <div class="sum-row"><span class="k">Amount</span><span class="v" id="sum-amount">—</span></div>
+            <div class="sum-row"><span class="k">Network Fee</span><span class="v" id="sum-fee">—</span></div>
+            <div class="sum-row"><span class="k">Change</span><span class="v" id="sum-change">—</span></div>
+            <div class="sum-row sum-total"><span class="k">Total</span><span class="v" id="sum-total">—</span></div>
+          </div>
+          <div id="send-msg"></div>
+          <button class="btn btn-outline" onclick="calcSend()" style="margin-bottom:10px">Preview Transaction</button>
+          <button class="btn btn-primary" id="btn-broadcast" onclick="broadcastSend()" disabled>
+            <svg width="16" height="16"><use href="#ic-send"/></svg>
+            Sign &amp; Broadcast
+          </button>
+        </div>
+      </div><!-- /tab-send -->
+
+      <!-- RECEIVE TAB -->
+      <div id="tab-receive" class="tab-panel hidden">
+        <div class="receive-wrap">
+          <h2>Receive SPW</h2>
+          <div class="qr-box">
+            <canvas id="qr-canvas" width="200" height="200"></canvas>
+          </div>
+          <div class="recv-addr-box">
+            <div class="recv-addr-text" id="recv-addr-text">—</div>
+            <button class="btn-icon" onclick="copyAddress()" title="Copy">
+              <svg><use href="#ic-copy"/></svg>
+            </button>
+          </div>
+          <div id="recv-keys-box" class="card" style="width:100%;text-align:left;margin:0 0 12px">
+            <div class="card-title">Your Public Keys (for Private Send)</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px">Share these to receive stealth payments</div>
+            <div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:3px;letter-spacing:.05em;text-transform:uppercase">Spend Public Key</div>
+            <div id="recv-spend-pub" style="font-family:monospace;font-size:.72rem;word-break:break-all;color:var(--text);margin-bottom:10px"></div>
+            <div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:3px;letter-spacing:.05em;text-transform:uppercase">View Public Key</div>
+            <div id="recv-view-pub" style="font-family:monospace;font-size:.72rem;word-break:break-all;color:var(--text)"></div>
+          </div>
+          <div class="recv-note">Only send SPW to this address.<br>Other assets will be permanently lost.</div>
+        </div>
+      </div><!-- /tab-receive -->
+
+      <!-- ACTIVITY TAB -->
+      <div id="tab-activity" class="tab-panel hidden">
+        <div class="activity-wrap">
+          <h2>Activity</h2>
+          <div class="activity-search">
+            <input id="act-search" placeholder="Search by TXID or address…" oninput="actSearch(this.value)">
+          </div>
+          <div id="act-list">
+            <div class="empty-state">
+              <svg><use href="#ic-activity"/></svg>
+              Loading transactions…
+            </div>
+          </div>
+          <div id="act-pagination" class="pagination hidden">
+            <button class="btn btn-outline btn-sm" id="act-prev" onclick="actPage(-1)">← Prev</button>
+            <span class="page-info" id="act-page-info"></span>
+            <button class="btn btn-outline btn-sm" id="act-next" onclick="actPage(1)">Next →</button>
+          </div>
+        </div>
+      </div><!-- /tab-activity -->
+
+      <!-- SETTINGS TAB -->
+      <div id="tab-settings" class="tab-panel hidden">
+        <div class="settings-wrap">
+          <h2>Settings</h2>
+
+          <div class="settings-section">
+            <div class="settings-section-title">Accounts</div>
+            <div id="settings-account-list"></div>
+            <button class="btn btn-outline" style="margin-top:4px" onclick="openAddAccountFlow()">
+              <svg width="16" height="16"><use href="#ic-plus"/></svg>
+              Add Account
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">Security</div>
+            <div class="settings-item" onclick="showBackup()">
+              <div class="si-icon" style="background:rgba(16,185,129,.1);color:var(--green)"><svg><use href="#ic-shield"/></svg></div>
+              <div style="flex:1"><div class="si-label">View Recovery Phrase</div><div class="si-sub">Password required</div></div>
+              <div class="si-arrow"><svg><use href="#ic-chevron-right"/></svg></div>
+            </div>
+            <div class="settings-item" onclick="showExportKey()">
+              <div class="si-icon" style="background:rgba(99,102,241,.1);color:var(--cyan)"><svg><use href="#ic-key"/></svg></div>
+              <div style="flex:1"><div class="si-label">View Private Key</div><div class="si-sub">Raw spend &amp; view keys</div></div>
+              <div class="si-arrow"><svg><use href="#ic-chevron-right"/></svg></div>
+            </div>
+            <div class="settings-item" onclick="removeCurrentAccount()" style="border-color:rgba(248,113,113,.2)">
+              <div class="si-icon" style="background:rgba(248,113,113,.1);color:var(--red)"><svg><use href="#ic-trash"/></svg></div>
+              <div style="flex:1"><div class="si-label" style="color:var(--red)">Remove Account</div><div class="si-sub">Delete from this device</div></div>
+              <div class="si-arrow"><svg><use href="#ic-chevron-right"/></svg></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">Advanced</div>
+            <div class="card" style="margin:0">
+              <div class="toggle-row">
+                <div>
+                  <div class="toggle-label">Stealth Address Mode</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Enable private transactions on home screen</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="adv-stealth-toggle" onchange="toggleAdvStealth()">
+                  <div class="toggle-track"></div>
+                </label>
+              </div>
+              <div id="adv-stealth-panel" class="hidden" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+                <div style="font-size:.78rem;color:var(--gold);font-weight:700;margin-bottom:8px">⚡ Privacy Mode Active</div>
+                <div style="font-size:.78rem;color:var(--muted);line-height:1.6">When sending, you can use stealth addresses to hide the recipient on-chain. The sender generates a one-time address using the recipient's public keys (ECDH). Only the recipient's view key can detect the payment.</div>
+                <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="scanStealth()">
+                  <svg width="13" height="13"><use href="#ic-refresh"/></svg>
+                  Scan Stealth Outputs
+                </button>
+                <div id="stealth-scan-result" style="margin-top:10px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">About</div>
+            <div class="card" style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.8">
+              <div>SPW Wallet <span style="color:var(--cyan)">v2.0</span></div>
+              <div>Sparrow (SPW) · Mainnet</div>
+              <div>Keys generated &amp; stored locally</div>
+              <div style="margin-top:8px"><a href="https://spw.network" style="color:var(--cyan)">spw.network ↗</a></div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+                <a href="https://github.com/otisaipro/spw-wallet" target="_blank" rel="noopener"
+                   style="display:inline-flex;align-items:center;gap:6px;color:var(--text);background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:.8rem;font-weight:600;text-decoration:none">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577v-2.165c-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.381 1.236-3.22-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.3 1.23A11.51 11.51 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.652.242 2.873.118 3.176.77.839 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.479 5.92.43.372.823 1.102.823 2.222v3.293c0 .322.218.694.825.576C20.565 21.796 24 17.298 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                  Open Source · GitHub
+                </a>
+                <div style="margin-top:8px;color:var(--muted);font-size:.76rem;line-height:1.6">
+                  This wallet is open source and available for<br>community audit. MIT License.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /tab-settings -->
+
+      <!-- EXPLORER TAB -->
+      <div id="tab-explorer" class="tab-panel hidden">
+        <div class="activity-wrap">
+          <h2>Explorer</h2>
+          <div class="activity-search" style="display:flex;gap:8px">
+            <input id="ex-input" placeholder="Enter any SPW address…"
+              style="flex:1" onkeydown="if(event.key==='Enter')exLookup()">
+            <button class="btn btn-primary btn-sm" onclick="exLookup()">
+              <svg width="14" height="14"><use href="#ic-search"/></svg>
+            </button>
+          </div>
+          <div id="ex-summary" class="hidden"
+            style="display:flex;justify-content:space-between;align-items:center;
+                   padding:10px 14px;background:var(--bg3);border-radius:10px;
+                   margin-bottom:8px;font-size:.85rem">
+            <span id="ex-addr-label" style="color:var(--muted);word-break:break-all"></span>
+            <span id="ex-balance-label"
+              style="color:var(--cyan);font-weight:700;white-space:nowrap;margin-left:12px"></span>
+          </div>
+          <div id="ex-list">
+            <div class="empty-state">
+              <svg><use href="#ic-search"/></svg>
+              Enter an address to explore
+            </div>
+          </div>
+          <div id="ex-pagination" class="pagination hidden">
+            <button class="btn btn-outline btn-sm" id="ex-prev" onclick="exPage(-1)">← Prev</button>
+            <span class="page-info" id="ex-page-info"></span>
+            <button class="btn btn-outline btn-sm" id="ex-next" onclick="exPage(1)">Next →</button>
+          </div>
+        </div>
+      </div><!-- /tab-explorer -->
+
+    </div><!-- /content -->
+
+    <!-- Bottom nav -->
+    <div id="bottom-nav">
+      <button class="nav-btn active" id="nav-home" onclick="showTab('home')">
+        <svg><use href="#ic-home"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-btn" id="nav-activity" onclick="showTab('activity')">
+        <svg><use href="#ic-activity"/></svg>
+        <span>Activity</span>
+      </button>
+      <button class="nav-btn" id="nav-send" onclick="showTab('send')">
+        <div class="nav-send-wrap"><svg><use href="#ic-send"/></svg></div>
+        <span>Send</span>
+      </button>
+      <button class="nav-btn" id="nav-receive" onclick="showTab('receive')">
+        <svg><use href="#ic-recv"/></svg>
+        <span>Receive</span>
+      </button>
+      <button class="nav-btn" id="nav-explorer" onclick="showTab('explorer')">
+        <svg><use href="#ic-search"/></svg>
+        <span>Explorer</span>
+      </button>
+    </div>
+
+  </div><!-- /main-app -->
+
+  <!-- Browser hint banner — outside main-app so shows during onboarding too -->
+  <div id="browser-hint" class="hidden">
+    <div class="bh-icon" id="bh-icon">🌐</div>
+    <div class="bh-body">
+      <div class="bh-title" id="bh-title"></div>
+      <div class="bh-desc" id="bh-desc"></div>
+      <div class="bh-steps hidden" id="bh-steps"></div>
+    </div>
+    <button class="bh-close" onclick="dismissBrowserHint()" aria-label="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- Account sheet -->
+  <div id="sheet-overlay" onclick="closeSheet()"></div>
+  <div id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">My Accounts</div>
+    <div class="sheet-body" id="sheet-body">
+      <div id="sheet-account-list"></div>
+      <button class="btn btn-outline" style="margin-top:8px" onclick="closeSheet();openAddAccountFlow()">
+        <svg width="16" height="16"><use href="#ic-plus"/></svg>
+        Add Account
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+</div><!-- /app -->
+
+<script type="module">
+import * as secp    from 'https://esm.sh/@noble/secp256k1@1.7.1';
+import { sha256 }   from 'https://esm.sh/@noble/hashes@1.3.3/sha256';
+import { sha512 }   from 'https://esm.sh/@noble/hashes@1.3.3/sha512';
+import { ripemd160} from 'https://esm.sh/@noble/hashes@1.3.3/ripemd160';
+import { hmac }     from 'https://esm.sh/@noble/hashes@1.3.3/hmac';
+import { generateMnemonic as _genMn, validateMnemonic as _valMn,
+         mnemonicToSeed as _mnToSeed }
+  from 'https://esm.sh/@scure/bip39@1.5.4';
+import { wordlist as WL } from 'https://esm.sh/@scure/bip39@1.5.4/wordlists/english';
+import QRCode from 'https://esm.sh/qrcode@1.5.3';
+
+secp.utils.hmacSha256Sync = (k,...m) => hmac(sha256,k,...m);
+
+const API = (location.port==='8333'||location.hostname==='localhost')
+  ? location.origin : location.origin+'/api';
+
+// ── Crypto helpers ──────────────────────────────────────────────────
+const hex = b => Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function b58enc(bytes){
+  let n=0n; for(const b of bytes) n=(n<<8n)|BigInt(b);
+  let s=''; while(n>0n){const r=Number(n%58n);n/=58n;s=B58[r]+s;}
+  let l=0; for(const b of bytes){if(b!==0)break;l++;}
+  return '1'.repeat(l)+s;
+}
+function spwAddress(pub33){
+  const h=ripemd160(sha256(pub33));
+  const p=new Uint8Array([0x1e,...h]);
+  const c=sha256(sha256(p)).slice(0,4);
+  return b58enc(new Uint8Array([...p,...c]));
+}
+function dsha256(b){return sha256(sha256(b))}
+function pyjson(v){
+  if(v===null)return'null';
+  if(typeof v==='boolean')return String(v);
+  if(typeof v==='number')return String(v);
+  if(typeof v==='string')return JSON.stringify(v);
+  if(Array.isArray(v))return'['+v.map(pyjson).join(', ')+']';
+  const ks=Object.keys(v).sort();
+  return'{'+ks.map(k=>JSON.stringify(k)+': '+pyjson(v[k])).join(', ')+'}';
+}
+function signingDigest(inputs,outputs,ts,txPk='',colorIssue=''){
+  const data={color_issue:colorIssue,
+    inputs:inputs.map(i=>({prev_txid:i.prev_txid,prev_vout:i.prev_vout})),
+    outputs:outputs.map(o=>{const d={address:o.address,amount:o.amount};if(o.data)d.data=o.data;return d;}),
+    timestamp:ts,tx_pubkey:txPk};
+  return dsha256(new TextEncoder().encode(pyjson(data)));
+}
+function computeTxid(inputs,outputs,ts,coinbase='',txPk='',colorIssue=''){
+  const data={coinbase_data:coinbase,color_issue:colorIssue,
+    inputs:inputs.map(i=>({prev_txid:i.prev_txid,prev_vout:i.prev_vout,pubkey:i.pubkey,script_sig:i.script_sig})),
+    outputs:outputs.map(o=>{const d={address:o.address,amount:o.amount};if(o.data)d.data=o.data;return d;}),
+    timestamp:ts,tx_pubkey:txPk};
+  return hex(dsha256(new TextEncoder().encode(pyjson(data))));
+}
+function makeStealthOutput(sPub,vPub){
+  const r=secp.utils.randomPrivateKey();
+  const rInt=BigInt('0x'+hex(r));
+  const R=secp.Point.BASE.multiply(rInt);
+  const vP=secp.Point.fromHex(vPub);
+  const sh=vP.multiply(rInt);
+  const xc=sh.toRawBytes(false).slice(1,33);
+  const hInt=BigInt('0x'+hex(sha256(xc)));
+  const sP=secp.Point.fromHex(sPub);
+  const otp=secp.Point.BASE.multiply(hInt).add(sP);
+  return{oneTimeAddr:spwAddress(otp.toRawBytes(true)),txPubkeyHex:hex(R.toRawBytes(true))};
+}
+const CURVE_N=BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+function _h512(k,d){return hmac(sha512,k,d)}
+function _bip32Master(s){const I=_h512(new TextEncoder().encode('Bitcoin seed'),s);return{key:I.slice(0,32),chain:I.slice(32)}}
+function _bip32Combine(pk,I){
+  const il=BigInt('0x'+hex(I.slice(0,32)));
+  const cn=((il+BigInt('0x'+hex(pk)))%CURVE_N).toString(16).padStart(64,'0');
+  const k=new Uint8Array(32);for(let i=0;i<32;i++)k[i]=parseInt(cn.slice(i*2,i*2+2),16);
+  return{key:k,chain:I.slice(32)};
+}
+function _bip32H(pk,cc,idx){const d=new Uint8Array(37);d[0]=0;d.set(pk,1);new DataView(d.buffer).setUint32(33,0x80000000+idx,false);return _bip32Combine(pk,_h512(cc,d))}
+function _bip32N(pk,cc,idx){const pub=secp.getPublicKey(pk,true);const d=new Uint8Array(37);d.set(pub,0);new DataView(d.buffer).setUint32(33,idx,false);return _bip32Combine(pk,_h512(cc,d))}
+function _bip32Path(seed,path){
+  let{key,chain}=_bip32Master(seed);
+  for(const p of path.split('/').slice(1)){const h=p.endsWith("'");const idx=parseInt(p);const r=h?_bip32H(key,chain,idx):_bip32N(key,chain,idx);key=r.key;chain=r.chain;}
+  return key;
+}
+async function mnemonicToKeys(phrase,pass=''){
+  const seed=await _mnToSeed(phrase,pass);
+  return{spendKey:_bip32Path(seed,"m/44'/1926'/0'/0/0"),viewKey:_bip32Path(seed,"m/44'/1926'/0'/1/0")};
+}
+function addrFromPubkeyHex(h){try{return spwAddress(secp.utils.hexToBytes(h))}catch{return''}}
+
+// ── Avatar colors ───────────────────────────────────────────────────
+const AVATAR_GRADS=[
+  'linear-gradient(135deg,#7c3aed,#00e0ff)',
+  'linear-gradient(135deg,#10b981,#00e0ff)',
+  'linear-gradient(135deg,#f59e0b,#ef4444)',
+  'linear-gradient(135deg,#3b82f6,#8b5cf6)',
+  'linear-gradient(135deg,#ec4899,#f97316)',
+  'linear-gradient(135deg,#14b8a6,#6366f1)',
+];
+function avatarGrad(id){
+  let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))&0xffff;
+  return AVATAR_GRADS[h%AVATAR_GRADS.length];
+}
+function avatarInitial(name){return(name||'A')[0].toUpperCase()}
+
+// ── Multi-account storage ───────────────────────────────────────────
+const ACCTS_KEY='spw_v2_accounts';
+const ACTIVE_KEY='spw_v2_active';
+
+function getAccounts(){
+  try{return JSON.parse(localStorage.getItem(ACCTS_KEY)||'[]')}catch{return[]}
+}
+function saveAccounts(a){localStorage.setItem(ACCTS_KEY,JSON.stringify(a))}
+function getActiveId(){return localStorage.getItem(ACTIVE_KEY)||''}
+function setActiveId(id){localStorage.setItem(ACTIVE_KEY,id)}
+function getActive(){
+  const accts=getAccounts();const id=getActiveId();
+  return accts.find(a=>a.id===id)||accts[0]||null;
+}
+function addAccount(acct){
+  const accts=getAccounts();accts.push(acct);saveAccounts(accts);setActiveId(acct.id);
+}
+function removeAccount(id){
+  let accts=getAccounts().filter(a=>a.id!==id);
+  saveAccounts(accts);
+  if(getActiveId()===id)setActiveId(accts[0]?.id||'');
+}
+
+// ── In-memory wallet state ──────────────────────────────────────────
+let privKey=null,pubKey=null,address=null,viewKey=null,viewPubKey=null,_mnemonic=null;
+let _utxos=[],_stealthUtxos=[],_selectedUtxos=[],_pendingTx=null;
+let _allTxs=[],_actPage=0,_actSearch='';
+const ACT_PAGE=20;
+
+function loadAccount(acct){
+  if(!acct)return false;
+  try{
+    privKey=secp.utils.hexToBytes(acct.spendHex);
+    pubKey=secp.getPublicKey(privKey,true);
+    address=spwAddress(pubKey);
+    viewKey=secp.utils.hexToBytes(acct.viewHex);
+    viewPubKey=secp.getPublicKey(viewKey,true);
+    _mnemonic=acct.mnemonic||null;
+    return true;
+  }catch{return false;}
+}
+
+// ── Pending new account mnemonic ────────────────────────────────────
+let _pendingMn=null,_pendingAddMn=null;
+
+// ── Welcome carousel ────────────────────────────────────────────────
+let _obSlide=0;
+const OB_TOTAL=4;
+
+function obWelcomeGoTo(i){
+  _obSlide=Math.max(0,Math.min(i,OB_TOTAL-1));
+  const track=document.getElementById('ob-track');
+  const dots=document.querySelectorAll('.ob-dot');
+  const btn=document.getElementById('ob-next-btn');
+  const skip=document.getElementById('ob-skip');
+  if(!track)return;
+  track.style.transform=`translateX(-${_obSlide*100}%)`;
+  dots.forEach((d,idx)=>d.classList.toggle('active',idx===_obSlide));
+  const isLast=_obSlide===OB_TOTAL-1;
+  if(btn){btn.style.display=isLast?'none':'flex';}
+  if(skip){skip.style.display=isLast?'none':'block';}
+}
+window.obWelcomeNext=function(){obWelcomeGoTo(_obSlide+1);}
+window.obWelcomeGoTo=obWelcomeGoTo;
+
+// Touch swipe support for carousel
+(function(){
+  let sx=0,sy=0,dragging=false;
+  function onTouchStart(e){
+    const t=e.touches[0];sx=t.clientX;sy=t.clientY;dragging=true;
+  }
+  function onTouchEnd(e){
+    if(!dragging)return;dragging=false;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40){
+      obWelcomeGoTo(_obSlide+(dx<0?1:-1));
+    }
+  }
+  document.addEventListener('DOMContentLoaded',()=>{
+    const track=document.getElementById('ob-track');
+    if(track){
+      track.addEventListener('touchstart',onTouchStart,{passive:true});
+      track.addEventListener('touchend',onTouchEnd,{passive:true});
+    }
+  });
+})();
+
+// ── Onboarding UI ───────────────────────────────────────────────────
+window.obShow=function(id){
+  const welcome=document.getElementById('ob-welcome');
+  if(id==='ob-welcome'){
+    // Show the carousel, hide all screens
+    document.querySelectorAll('.ob-screen').forEach(s=>s.classList.add('hidden'));
+    if(welcome){welcome.style.display='flex';obWelcomeGoTo(0);}
+    return;
+  }
+  // Hide welcome carousel
+  if(welcome)welcome.style.display='none';
+  document.querySelectorAll('.ob-screen').forEach(s=>s.classList.add('hidden'));
+  const target=document.getElementById(id);
+  if(target){target.classList.remove('hidden');}
+};
+
+window.obRevealPhrase=function(){
+  const grid=document.getElementById('ob-mn-grid');
+  grid.classList.toggle('mn-blur');
+};
+window.obRevealAddPhrase=function(){
+  const grid=document.getElementById('ob-add-mn-grid');
+  grid.classList.toggle('mn-blur');
+};
+
+async function prepareNewMnemonic(gridId){
+  const mn=_genMn(WL,128);
+  const grid=document.getElementById(gridId);
+  grid.innerHTML=mn.split(' ').map((w,i)=>`<div class="mn-word"><span class="mn-num">${i+1}</span><span class="mn-w">${w}</span></div>`).join('');
+  grid.classList.add('mn-blur');
+  return mn;
+}
+
+window.obShow=async function(id){
+  document.querySelectorAll('.ob-screen').forEach(s=>s.classList.add('hidden'));
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.remove('hidden');
+  if(id==='ob-create-a'){
+    _pendingMn=await prepareNewMnemonic('ob-mn-grid');
+    document.getElementById('ob-backup-check').checked=false;
+    document.getElementById('ob-create-btn').disabled=true;
+  }
+  if(id==='ob-add-create-a'){
+    _pendingAddMn=await prepareNewMnemonic('ob-add-mn-grid');
+    document.getElementById('ob-add-backup-check').checked=false;
+    document.getElementById('ob-add-create-btn').disabled=true;
+  }
+};
+
+window.obFinishCreate=async function(){
+  if(!_pendingMn)return;
+  const btn=document.getElementById('ob-create-btn');
+  btn.disabled=true;btn.textContent='Setting up…';
+  try{
+    const{spendKey,viewKey:vk}=await mnemonicToKeys(_pendingMn);
+    const addr=spwAddress(secp.getPublicKey(spendKey,true));
+    const acct={id:Date.now().toString(),name:'Account 1',
+      spendHex:hex(spendKey),viewHex:hex(vk),mnemonic:_pendingMn,address:addr};
+    addAccount(acct);
+    _pendingMn=null;
+    bootMain();
+  }catch(e){btn.disabled=false;btn.textContent='Continue →';toast('Error: '+e.message,'err');}
+};
+
+window.obImport=async function(){
+  const phrase=document.getElementById('ob-import-words').value.trim().toLowerCase().replace(/\s+/g,' ');
+  const pass=document.getElementById('ob-import-pass').value;
+  const msgEl=document.getElementById('ob-import-msg');
+  if(!_valMn(phrase,WL)){msgEl.innerHTML='<div class="alert alert-err">Invalid recovery phrase.</div>';return;}
+  const btn=document.querySelector('#ob-import .btn-primary');
+  btn.disabled=true;btn.textContent='Importing…';
+  try{
+    const{spendKey,viewKey:vk}=await mnemonicToKeys(phrase,pass);
+    const addr=spwAddress(secp.getPublicKey(spendKey,true));
+    const existing=getAccounts();
+    const nameInput=document.getElementById('ob-import-name').value.trim();
+    const name=nameInput||('Account '+(existing.length+1));
+    const acct={id:Date.now().toString(),name,spendHex:hex(spendKey),viewHex:hex(vk),mnemonic:phrase,address:addr};
+    addAccount(acct);
+    bootMain();
+  }catch(e){msgEl.innerHTML=`<div class="alert alert-err">${e.message}</div>`;btn.disabled=false;btn.textContent='Import Wallet';}
+};
+
+window.obImportKey=function(){
+  const sk=document.getElementById('ob-import-spendkey').value.trim();
+  const vk=document.getElementById('ob-import-viewkey').value.trim();
+  const msgEl=document.getElementById('ob-import-key-msg');
+  if(!/^[0-9a-fA-F]{64}$/.test(sk)){msgEl.innerHTML='<div class="alert alert-err">Spend key must be 64 hex chars.</div>';return;}
+  if(vk&&!/^[0-9a-fA-F]{64}$/.test(vk)){msgEl.innerHTML='<div class="alert alert-err">View key must be 64 hex chars.</div>';return;}
+  try{
+    const spendKeyBytes=secp.utils.hexToBytes(sk);
+    const pub=secp.getPublicKey(spendKeyBytes,true);
+    const addr=spwAddress(pub);
+    const resolvedVk=vk||hex(sha256(spendKeyBytes));
+    const existing=getAccounts();
+    const nameInput=document.getElementById('ob-import-key-name').value.trim();
+    const name=nameInput||('Account '+(existing.length+1));
+    const acct={id:Date.now().toString(),name,spendHex:sk,viewHex:resolvedVk,mnemonic:null,address:addr};
+    addAccount(acct);
+    bootMain();
+  }catch(e){msgEl.innerHTML=`<div class="alert alert-err">${e.message}</div>`;}
+};
+
+// Add account flow (from settings)
+window.openAddAccountFlow=function(){
+  document.getElementById('onboarding').classList.remove('hidden');
+  window.obShow('ob-add-account');
+};
+window.closeAddAccount=function(){
+  document.getElementById('onboarding').classList.add('hidden');
+};
+
+window.obFinishAddCreate=async function(){
+  if(!_pendingAddMn)return;
+  const btn=document.getElementById('ob-add-create-btn');
+  btn.disabled=true;btn.textContent='Adding…';
+  try{
+    const{spendKey,viewKey:vk}=await mnemonicToKeys(_pendingAddMn);
+    const addr=spwAddress(secp.getPublicKey(spendKey,true));
+    const existing=getAccounts();
+    const name='Account '+(existing.length+1);
+    const acct={id:Date.now().toString(),name,spendHex:hex(spendKey),viewHex:hex(vk),mnemonic:_pendingAddMn,address:addr};
+    addAccount(acct);
+    _pendingAddMn=null;
+    document.getElementById('onboarding').classList.add('hidden');
+    switchAccount(acct.id);
+  }catch(e){btn.disabled=false;btn.textContent='Add Account →';toast('Error: '+e.message,'err');}
+};
+
+window.obAddImportKey=function(){
+  const sk=document.getElementById('ob-add-import-spendkey').value.trim();
+  const vk=document.getElementById('ob-add-import-viewkey').value.trim();
+  const msgEl=document.getElementById('ob-add-import-key-msg');
+  if(!/^[0-9a-fA-F]{64}$/.test(sk)){msgEl.innerHTML='<div class="alert alert-err">Spend key must be 64 hex chars.</div>';return;}
+  if(vk&&!/^[0-9a-fA-F]{64}$/.test(vk)){msgEl.innerHTML='<div class="alert alert-err">View key must be 64 hex chars.</div>';return;}
+  try{
+    const spendKeyBytes=secp.utils.hexToBytes(sk);
+    const pub=secp.getPublicKey(spendKeyBytes,true);
+    const addr=spwAddress(pub);
+    const resolvedVk=vk||hex(sha256(spendKeyBytes));
+    const existing=getAccounts();
+    const nameInput=document.getElementById('ob-add-import-key-name').value.trim();
+    const name=nameInput||('Account '+(existing.length+1));
+    const acct={id:Date.now().toString(),name,spendHex:sk,viewHex:resolvedVk,mnemonic:null,address:addr};
+    addAccount(acct);
+    document.getElementById('onboarding').classList.add('hidden');
+    switchAccount(acct.id);
+  }catch(e){msgEl.innerHTML=`<div class="alert alert-err">${e.message}</div>`;}
+};
+
+window.obAddImport=async function(){
+  const phrase=document.getElementById('ob-add-import-words').value.trim().toLowerCase().replace(/\s+/g,' ');
+  const pass=document.getElementById('ob-add-import-pass').value;
+  const msgEl=document.getElementById('ob-add-import-msg');
+  if(!_valMn(phrase,WL)){msgEl.innerHTML='<div class="alert alert-err">Invalid recovery phrase.</div>';return;}
+  const btn=document.querySelector('#ob-add-import .btn-primary');
+  btn.disabled=true;btn.textContent='Importing…';
+  try{
+    const{spendKey,viewKey:vk}=await mnemonicToKeys(phrase,pass);
+    const addr=spwAddress(secp.getPublicKey(spendKey,true));
+    const existing=getAccounts();
+    const nameInput=document.getElementById('ob-add-import-name').value.trim();
+    const name=nameInput||('Account '+(existing.length+1));
+    const acct={id:Date.now().toString(),name,spendHex:hex(spendKey),viewHex:hex(vk),mnemonic:phrase,address:addr};
+    addAccount(acct);
+    document.getElementById('onboarding').classList.add('hidden');
+    switchAccount(acct.id);
+  }catch(e){msgEl.innerHTML=`<div class="alert alert-err">${e.message}</div>`;btn.disabled=false;btn.textContent='Import Account';}
+};
+
+// ── Main app boot ───────────────────────────────────────────────────
+function _hideSplash(){
+  const s=document.getElementById('launch-splash');
+  if(!s)return;
+  s.style.opacity='0';
+  setTimeout(()=>s.remove(),320);
+}
+function bootMain(){
+  const acct=getActive();
+  if(!acct||!loadAccount(acct)){
+    document.getElementById('onboarding').classList.remove('hidden');
+    document.getElementById('main-app').classList.add('hidden');
+    window.obShow('ob-welcome');
+    _hideSplash();
+    return;
+  }
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('main-app').classList.remove('hidden');
+  document.getElementById('main-app').style.display='flex';
+  renderHeader();
+  // Payment request mode — skip normal UI, show pay overlay
+  if(_payParams){
+    refreshWallet();
+    _showPayOverlay();
+    return;
+  }
+  const urlAddr=new URLSearchParams(location.search).get('addr');
+  if(urlAddr){
+    _hideSplash();
+    showTab('activity');
+    loadActivityForAddr(urlAddr);
+  }else{
+    showTab('home');
+    // restore cached data instantly, hide splash with no delay if cache exists
+    const cached=_loadCache();
+    if(cached){
+      _applyCache(cached);
+      const s=document.getElementById('launch-splash');
+      if(s)s.remove(); // instant — no fade
+    }else{
+      _hideSplash();
+    }
+    refreshWallet(); // update in background
+  }
+}
+
+function switchAccount(id){
+  setActiveId(id);
+  const acct=getActive();
+  if(!acct)return;
+  loadAccount(acct);
+  _utxos=[];_stealthUtxos=[];_allTxs=[];
+  renderHeader();
+  showTab('home');
+  const cached=_loadCache();
+  if(cached)_applyCache(cached);
+  refreshWallet();
+}
+window.switchAccount=switchAccount;
+
+// ── Header ──────────────────────────────────────────────────────────
+function renderHeader(){
+  const acct=getActive();if(!acct)return;
+  const grad=avatarGrad(acct.id);
+  const init=avatarInitial(acct.name);
+  document.getElementById('hdr-avatar').style.background=grad;
+  document.getElementById('hdr-avatar').textContent=init;
+  document.getElementById('hdr-acct-name').textContent=acct.name;
+}
+
+// ── Tab routing ─────────────────────────────────────────────────────
+const TABS=['home','send','receive','activity','settings','explorer'];
+window.showTab=function(tab){
+  TABS.forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
+    const nb=document.getElementById('nav-'+t);
+    if(nb)nb.classList.toggle('active',t===tab);
+  });
+  if(tab==='home')renderHome();
+  if(tab==='receive')renderReceive();
+  if(tab==='activity')renderActivity();
+  if(tab==='settings')renderSettings();
+  if(tab==='explorer')renderExplorer();
+};
+
+// ── Home ─────────────────────────────────────────────────────────────
+function renderHome(){
+  const acct=getActive();if(!acct)return;
+  document.getElementById('home-avatar').style.background=avatarGrad(acct.id);
+  document.getElementById('home-avatar').textContent=avatarInitial(acct.name);
+  document.getElementById('home-acct-name').textContent=acct.name;
+  const addr=address||'';
+  document.getElementById('home-addr-text').textContent=addr?`${addr.slice(0,8)}…${addr.slice(-6)}`:'—';
+}
+
+window.copyAddress=function(){
+  if(!address)return;
+  navigator.clipboard.writeText(address).then(()=>toast('Address copied','ok'));
+};
+
+// ── Wallet data cache (localStorage) ────────────────────────────────
+function _cacheKey(){return address?'spw_wc_'+address:null;}
+function _saveCache(data){
+  const k=_cacheKey();if(!k)return;
+  try{localStorage.setItem(k,JSON.stringify({...data,ts:Date.now()}));}catch{}
+}
+function _loadCache(){
+  const k=_cacheKey();if(!k)return null;
+  try{const s=localStorage.getItem(k);return s?JSON.parse(s):null;}catch{return null;}
+}
+function _applyCache(c){
+  if(!c)return;
+  document.getElementById('home-balance').textContent=(c.bal??0).toFixed(8);
+  document.getElementById('home-feathers').textContent=(c.feat??0).toLocaleString()+' feathers';
+  document.getElementById('asset-spw-bal').textContent=(c.bal??0).toFixed(8)+' SPW';
+  if(c.utxos)_utxos=c.utxos;
+  if(c.txs){
+    const el=document.getElementById('home-recent-txs');
+    if(c.txs.length)el.innerHTML=c.txs.map(tx=>renderTxItem(tx)).join('');
+  }
+}
+
+window.refreshWallet=async function(){
+  if(!address)return;
+  try{
+    const[balRes,utxoRes]=await Promise.all([
+      fetch(`${API}/balance/${address}`).then(r=>r.json()),
+      fetch(`${API}/utxos/${address}`).then(r=>r.json()),
+    ]);
+    const bal=balRes.balance_spw??0;
+    const feat=balRes.balance_feathers??0;
+    document.getElementById('home-balance').textContent=bal.toFixed(8);
+    document.getElementById('home-feathers').textContent=feat.toLocaleString()+' feathers';
+    document.getElementById('asset-spw-bal').textContent=bal.toFixed(8)+' SPW';
+    _utxos=utxoRes.utxos||[];
+    _saveCache({bal,feat,utxos:_utxos});
+  }catch(e){
+    document.getElementById('home-balance').textContent='—';
+  }
+  loadRecentTxs();
+};
+
+async function loadRecentTxs(){
+  const el=document.getElementById('home-recent-txs');
+  try{
+    const d=await fetch(`${API}/explorer/${address}`).then(r=>r.json());
+    const txs=(d.transactions||[]).slice(-5).reverse();
+    if(!txs.length){el.innerHTML='<div class="empty-state" style="padding:20px"><svg><use href="#ic-activity"/></svg>No transactions yet</div>';return;}
+    el.innerHTML=txs.map(tx=>renderTxItem(tx)).join('');
+    // update txs in cache
+    const k=_cacheKey();if(k){try{const s=localStorage.getItem(k);if(s){const c=JSON.parse(s);c.txs=txs;c.ts=Date.now();localStorage.setItem(k,JSON.stringify(c));}}catch{}}
+  }catch{el.innerHTML='';}
+}
+
+function renderTxItem(tx,addr){
+  const a=addr||address;
+  const myOut=(tx.outputs||[]).filter(o=>o.address===a).reduce((s,o)=>s+o.amount,0);
+  const myIn=(tx.inputs||[]).filter(i=>i.address===a).reduce((s,i)=>s+i.amount,0);
+  const net=myOut-myIn;
+  const isMine=tx.coinbase_data;
+  const cls=isMine?'tx-mine':net>=0?'tx-in':'tx-out';
+  const label=isMine?'Mined':net>=0?'Received':'Sent';
+  const amtStr=(Math.abs(net)/1e8).toFixed(8);
+  const sign=net>=0||isMine?'+':'-';
+  const ts=tx.timestamp?new Date(tx.timestamp*1000).toLocaleString():`Block ${tx.block_height}`;
+  return`<div class="tx-item ${cls}">
+    <div class="tx-icon"><svg><use href="#ic-${isMine?'arrow-down':net>=0?'arrow-down':'arrow-up'}"/></svg></div>
+    <div style="flex:1;min-width:0">
+      <div class="tx-label">${label}</div>
+      <div class="tx-meta"><span>${ts}</span></div>
+    </div>
+    <div class="tx-amt">
+      <div class="tx-amt-val">${sign}${amtStr} SPW</div>
+      <div class="tx-block">Block ${tx.block_height}</div>
+    </div>
+  </div>`;
+}
+
+// ── Receive ──────────────────────────────────────────────────────────
+async function renderReceive(){
+  if(!address)return;
+  document.getElementById('recv-addr-text').textContent=address;
+  document.getElementById('recv-spend-pub').textContent=hex(pubKey);
+  document.getElementById('recv-view-pub').textContent=hex(viewPubKey);
+  try{
+    await QRCode.toCanvas(document.getElementById('qr-canvas'),address,{
+      width:200,margin:2,color:{dark:'#1a1a2e',light:'#ffffff'}
+    });
+  }catch{}
+}
+
+// ── Activity ─────────────────────────────────────────────────────────
+async function renderActivity(){
+  if(!address)return;
+  const el=document.getElementById('act-list');
+  el.innerHTML='<div class="empty-state"><div class="spinner"></div></div>';
+  try{
+    const d=await fetch(`${API}/explorer/${address}`).then(r=>r.json());
+    _allTxs=(d.transactions||[]).slice().reverse();
+    _actPage=0;
+    renderActivityPage();
+  }catch{el.innerHTML='<div class="empty-state">Could not load transactions.</div>';}
+}
+
+async function loadActivityForAddr(addr){
+  const el=document.getElementById('act-list');
+  el.innerHTML='<div class="empty-state"><div class="spinner"></div></div>';
+  document.getElementById('act-search').value=addr;
+  try{
+    const d=await fetch(`${API}/explorer/${addr}`).then(r=>r.json());
+    _allTxs=(d.transactions||[]).slice().reverse();
+    _actSearch=addr;_actPage=0;
+    renderActivityPage();
+  }catch{el.innerHTML='<div class="empty-state">Could not load transactions.</div>';}
+}
+
+function renderActivityPage(){
+  const filtered=_actSearch
+    ?_allTxs.filter(tx=>(tx.txid||'').includes(_actSearch)||(tx.outputs||[]).some(o=>o.address===_actSearch))
+    :_allTxs;
+  const total=filtered.length;
+  const totalPages=Math.max(1,Math.ceil(total/ACT_PAGE));
+  _actPage=Math.max(0,Math.min(_actPage,totalPages-1));
+  const slice=filtered.slice(_actPage*ACT_PAGE,(_actPage+1)*ACT_PAGE);
+  const el=document.getElementById('act-list');
+  if(!slice.length){el.innerHTML='<div class="empty-state"><svg><use href="#ic-activity"/></svg>No transactions found</div>';
+    document.getElementById('act-pagination').classList.add('hidden');return;}
+  el.innerHTML=slice.map(tx=>renderTxItem(tx)).join('');
+  const pg=document.getElementById('act-pagination');
+  if(totalPages>1){
+    pg.classList.remove('hidden');
+    document.getElementById('act-page-info').textContent=`Page ${_actPage+1} / ${totalPages}`;
+    document.getElementById('act-prev').disabled=_actPage===0;
+    document.getElementById('act-next').disabled=_actPage>=totalPages-1;
+  }else{pg.classList.add('hidden');}
+}
+
+window.actPage=function(dir){_actPage+=dir;renderActivityPage()};
+window.actSearch=function(v){_actSearch=v;_actPage=0;renderActivityPage()};
+
+// ── Explorer ──────────────────────────────────────────────────────────
+let _exTxs=[],_exPage=0,_exAddr='';
+const EX_PAGE=20;
+
+function renderExplorer(){
+  // keep showing current results if already loaded
+}
+
+window.exLookup=async function(){
+  const addr=(document.getElementById('ex-input').value||'').trim();
+  if(!addr)return;
+  const list=document.getElementById('ex-list');
+  const summary=document.getElementById('ex-summary');
+  list.innerHTML='<div class="empty-state"><div class="spinner"></div></div>';
+  summary.classList.add('hidden');
+  document.getElementById('ex-pagination').classList.add('hidden');
+  try{
+    const d=await fetch(`${API}/explorer/${addr}`).then(r=>r.json());
+    if(d.error){list.innerHTML=`<div class="empty-state">${d.error}</div>`;return;}
+    _exTxs=(d.transactions||[]).slice().reverse();
+    _exAddr=addr;
+    _exPage=0;
+    document.getElementById('ex-addr-label').textContent=`${addr.slice(0,10)}…${addr.slice(-6)}`;
+    document.getElementById('ex-balance-label').textContent=`${(d.balance_spw||0).toFixed(8)} SPW`;
+    summary.classList.remove('hidden');
+    summary.style.display='flex';
+    renderExPage();
+  }catch(e){list.innerHTML='<div class="empty-state">Could not load address.</div>';}
+};
+
+function renderExPage(){
+  const total=_exTxs.length;
+  const totalPages=Math.max(1,Math.ceil(total/EX_PAGE));
+  _exPage=Math.max(0,Math.min(_exPage,totalPages-1));
+  const slice=_exTxs.slice(_exPage*EX_PAGE,(_exPage+1)*EX_PAGE);
+  const list=document.getElementById('ex-list');
+  if(!slice.length){
+    list.innerHTML='<div class="empty-state"><svg><use href="#ic-activity"/></svg>No transactions</div>';
+    document.getElementById('ex-pagination').classList.add('hidden');
+    return;
+  }
+  list.innerHTML=slice.map(tx=>renderTxItem(tx,_exAddr)).join('');
+  const pg=document.getElementById('ex-pagination');
+  if(totalPages>1){
+    pg.classList.remove('hidden');
+    document.getElementById('ex-page-info').textContent=`Page ${_exPage+1} / ${totalPages}`;
+    document.getElementById('ex-prev').disabled=_exPage===0;
+    document.getElementById('ex-next').disabled=_exPage>=totalPages-1;
+  }else{pg.classList.add('hidden');}
+}
+
+window.exPage=function(dir){_exPage+=dir;renderExPage()};
+
+// ── Send ──────────────────────────────────────────────────────────────
+window.togglePrivMode=function(){
+  const on=document.getElementById('priv-toggle').checked;
+  document.getElementById('send-adv-panel').classList.toggle('hidden',!on);
+  document.getElementById('send-normal-panel').classList.toggle('hidden',on);
+  document.getElementById('stealth-sub').style.display=on?'':'none';
+  clearMsg('send-msg');
+};
+window.openAdvSend=function(){
+  document.getElementById('priv-toggle').checked=true;
+  window.togglePrivMode();
+};
+
+window.setMaxAmount=function(){
+  const total=_utxos.reduce((s,u)=>s+u.amount,0)/1e8;
+  const fee=parseFloat(document.getElementById('send-fee').value)||0.0001;
+  const max=Math.max(0,total-fee);
+  document.getElementById('send-amount').value=max.toFixed(8);
+};
+
+window.calcSend=function(){
+  clearMsg('send-msg');_pendingTx=null;
+  document.getElementById('btn-broadcast').disabled=true;
+  document.getElementById('send-summary').classList.add('hidden');
+  const isPriv=document.getElementById('priv-toggle').checked;
+  const amt=Math.round((parseFloat(document.getElementById('send-amount').value)||0)*1e8);
+  const fee=Math.round(Math.max(parseFloat(document.getElementById('send-fee').value)||0.0001,0.0001)*1e8);
+  const need=amt+fee;
+  let to='',txPk='';
+  if(isPriv){
+    const sp=document.getElementById('send-spend-pubkey').value.trim();
+    const vp=document.getElementById('send-view-pubkey').value.trim();
+    if(!/^0[23][0-9a-fA-F]{64}$/.test(sp)){setMsg('send-msg','err','Invalid spend public key.');return;}
+    if(!/^0[23][0-9a-fA-F]{64}$/.test(vp)){setMsg('send-msg','err','Invalid view public key.');return;}
+    try{const s=makeStealthOutput(sp,vp);to=s.oneTimeAddr;txPk=s.txPubkeyHex;}
+    catch(e){setMsg('send-msg','err','Stealth error: '+e.message);return;}
+  }else{
+    to=document.getElementById('send-to').value.trim();
+    if(!to.match(/^[1-9A-HJ-NP-Za-km-z]{25,40}$/)){setMsg('send-msg','err','Invalid address.');return;}
+  }
+  if(amt<=0){setMsg('send-msg','err','Amount must be positive.');return;}
+  const allU=[..._utxos,..._stealthUtxos];
+  if(!allU.length){setMsg('send-msg','err','No UTXOs. Refresh wallet first.');return;}
+  const avail=allU.reduce((s,u)=>s+u.amount,0);
+  if(avail<need){setMsg('send-msg','err',`Insufficient balance: have ${(avail/1e8).toFixed(8)} SPW, need ${(need/1e8).toFixed(8)} SPW.`);return;}
+  let sel=0;_selectedUtxos=[];
+  for(const u of allU){_selectedUtxos.push(u);sel+=u.amount;if(sel>=need)break;}
+  const change=sel-need;
+  document.getElementById('sum-amount').textContent=(amt/1e8).toFixed(8)+' SPW';
+  document.getElementById('sum-fee').textContent=(fee/1e8).toFixed(8)+' SPW';
+  document.getElementById('sum-total').textContent=(need/1e8).toFixed(8)+' SPW';
+  document.getElementById('sum-change').textContent=change>0?(change/1e8).toFixed(8)+' SPW':'0 (no change)';
+  document.getElementById('send-summary').classList.remove('hidden');
+  document.getElementById('btn-broadcast').disabled=false;
+  _pendingTx={to,amt,fee,change,ts:Math.floor(Date.now()/1000),txPk,isPriv};
+  setMsg('send-msg','info',isPriv?`Stealth send ready. One-time addr: ${to.slice(0,16)}…`:'Ready to broadcast.');
+};
+
+window.broadcastSend=async function(){
+  if(!_pendingTx)return;
+  const btn=document.getElementById('btn-broadcast');
+  btn.disabled=true;clearMsg('send-msg');
+  try{
+    const{to,amt,fee,change,ts,txPk}=_pendingTx;
+    const pubHex=hex(pubKey);
+    const inputs=_selectedUtxos.map(u=>({prev_txid:u.txid,prev_vout:u.vout,script_sig:'',pubkey:pubHex}));
+    const outputs=[{amount:amt,address:to}];
+    if(change>0)outputs.push({amount:change,address});
+    const digest=signingDigest(inputs,outputs,ts,txPk);
+    const sigBytes=secp.signSync(digest,privKey,{canonical:true,der:true});
+    const sigHex=hex(sigBytes);
+    const signedInputs=inputs.map(i=>({...i,script_sig:sigHex}));
+    const txid=computeTxid(signedInputs,outputs,ts,'',txPk);
+    const res=await fetch(`${API}/tx/broadcast`,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({txid,inputs:signedInputs,outputs,timestamp:ts,coinbase_data:'',tx_pubkey:txPk})});
+    const data=await res.json();
+    if(res.ok){
+      setMsg('send-msg','ok',`Broadcast successful!\nTXID: ${data.txid}`);
+      document.getElementById('send-to').value='';
+      document.getElementById('send-amount').value='';
+      document.getElementById('send-summary').classList.add('hidden');
+      _pendingTx=null;_selectedUtxos=[];
+      toast('Transaction sent!','ok');
+      setTimeout(window.refreshWallet,2000);
+    }else{setMsg('send-msg','err','Rejected: '+data.error);btn.disabled=false;}
+  }catch(e){setMsg('send-msg','err','Error: '+e.message);btn.disabled=false;}
+};
+
+// ── Settings ──────────────────────────────────────────────────────────
+function renderSettings(){
+  const accts=getAccounts();const activeId=getActiveId();
+  const list=document.getElementById('settings-account-list');
+  list.innerHTML=accts.map(a=>`
+    <div class="account-item ${a.id===activeId?'active-acct':''}" onclick="switchAccount('${a.id}')">
+      <div class="acct-avatar" style="background:${avatarGrad(a.id)}">${avatarInitial(a.name)}</div>
+      <div class="acct-info">
+        <div id="acct-name-${a.id}" class="name">${a.name}</div>
+        <div class="addr">${a.address.slice(0,16)}…${a.address.slice(-6)}</div>
+      </div>
+      <button class="btn-ghost" style="padding:6px;margin-left:auto;color:var(--muted)" title="Rename" onclick="event.stopPropagation();renameAccount('${a.id}')">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      ${a.id===activeId?'<div class="acct-check"><svg><use href="#ic-check"/></svg></div>':''}
+    </div>`).join('');
+}
+
+window.renameAccount=function(id){
+  const nameEl=document.getElementById('acct-name-'+id);
+  if(!nameEl||nameEl.querySelector('input'))return;
+  const current=nameEl.textContent;
+  nameEl.innerHTML='';
+  const inp=document.createElement('input');
+  inp.value=current;
+  inp.style.cssText='background:var(--bg3);border:1px solid var(--purple);border-radius:6px;color:#fff;font-size:.88rem;font-weight:600;padding:2px 7px;width:130px;outline:none';
+  nameEl.appendChild(inp);
+  inp.focus();inp.select();
+  function save(){
+    const val=inp.value.trim()||current;
+    const accts=getAccounts();
+    const acct=accts.find(a=>a.id===id);
+    if(acct){acct.name=val;saveAccounts(accts);}
+    nameEl.textContent=val;
+    renderHeader();
+  }
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')save();if(e.key==='Escape'){nameEl.textContent=current;}});
+  inp.addEventListener('blur',save);
+};
+
+window.openAccountSheet=function(){
+  const accts=getAccounts();const activeId=getActiveId();
+  document.getElementById('sheet-account-list').innerHTML=accts.map(a=>`
+    <div class="account-item ${a.id===activeId?'active-acct':''}" onclick="closeSheet();switchAccount('${a.id}')">
+      <div class="acct-avatar" style="background:${avatarGrad(a.id)}">${avatarInitial(a.name)}</div>
+      <div class="acct-info">
+        <div class="name">${a.name}</div>
+        <div class="addr">${a.address.slice(0,16)}…${a.address.slice(-6)}</div>
+      </div>
+      ${a.id===activeId?'<div class="acct-check"><svg><use href="#ic-check"/></svg></div>':''}
+    </div>`).join('');
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+};
+window.closeSheet=function(){
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+};
+
+function _showMnemonicContent(){
+  openSheetWith('Recovery Phrase',`
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--gold)">
+      ⚠️ Write this phrase on paper or another physical medium. Never screenshot or store it digitally. Losing it means permanent loss of funds.
+    </div>
+    <div class="mn-grid mn-blur" id="backup-grid">${_mnemonic.split(' ').map((w,i)=>`<div class="mn-word"><span class="mn-num">${i+1}</span><span class="mn-w">${w}</span></div>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-outline btn-sm" style="flex:1;gap:6px" onclick="document.getElementById('backup-grid').classList.toggle('mn-blur')">
+        <svg width="13" height="13"><use href="#ic-eye"/></svg> Reveal
+      </button>
+      <button class="btn btn-outline btn-sm" style="flex:1;gap:6px" onclick="navigator.clipboard.writeText(${JSON.stringify(_mnemonic)}).then(()=>toast('Copied','ok'))">
+        <svg width="13" height="13"><use href="#ic-copy"/></svg> Copy
+      </button>
+    </div>`);
+}
+
+window.showBackup=function(){
+  if(!_mnemonic){toast('No recovery phrase (key-only account)','err');return;}
+  const stored=localStorage.getItem('mnemonic_pwd');
+  if(!stored){
+    openSheetWith('Set Phrase Password',`
+      <div style="font-size:.84rem;color:var(--muted);margin-bottom:16px">Set a password to protect your recovery phrase. Required every time you view it.</div>
+      <input type="password" id="mn-p1" placeholder="Set password" style="width:100%;margin-bottom:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.95rem">
+      <input type="password" id="mn-p2" placeholder="Confirm password" style="width:100%;margin-bottom:16px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.95rem">
+      <div id="mn-pwd-err" style="color:var(--red);font-size:.8rem;margin-bottom:8px;min-height:18px"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="window.confirmSetMnPwd()">Confirm</button>`);
+  }else{
+    openSheetWith('Enter Password',`
+      <div style="font-size:.84rem;color:var(--muted);margin-bottom:16px">Enter your password to view the recovery phrase.</div>
+      <input type="password" id="mn-p-enter" placeholder="Password" style="width:100%;margin-bottom:16px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.95rem" onkeydown="if(event.key==='Enter')window.confirmMnPwd()">
+      <div id="mn-pwd-err" style="color:var(--red);font-size:.8rem;margin-bottom:8px;min-height:18px"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="window.confirmMnPwd()">Confirm</button>`);
+  }
+};
+window.confirmSetMnPwd=function(){
+  const p1=document.getElementById('mn-p1').value;
+  const p2=document.getElementById('mn-p2').value;
+  const err=document.getElementById('mn-pwd-err');
+  if(!p1){err.textContent='Password cannot be empty';return;}
+  if(p1!==p2){err.textContent='Passwords do not match';return;}
+  localStorage.setItem('mnemonic_pwd',p1);
+  _showMnemonicContent();
+};
+window.confirmMnPwd=function(){
+  const entered=document.getElementById('mn-p-enter').value;
+  const stored=localStorage.getItem('mnemonic_pwd');
+  if(entered!==stored){document.getElementById('mn-pwd-err').textContent='Incorrect password';return;}
+  _showMnemonicContent();
+};
+
+window.showExportKey=function(){
+  try{
+    if(!privKey||!pubKey){toast('Keys not loaded','err');return;}
+    const spendHex=hex(privKey),spendPubHex=hex(pubKey),viewPubHex=hex(viewPubKey);
+    openSheetWith('View Private Key',`
+      <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--red)">
+        Never share your private key. Anyone with it can steal your funds.
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Spend Public Key</div>
+      <div style="font-family:monospace;font-size:.72rem;word-break:break-all;color:var(--text);margin-bottom:4px">${spendPubHex}</div>
+      <button class="btn btn-outline btn-sm" style="width:auto;margin-bottom:12px;gap:6px" onclick="navigator.clipboard.writeText('${spendPubHex}').then(()=>toast('Copied','ok'))"><svg width="12" height="12"><use href="#ic-copy"/></svg> Copy</button>
+      <div style="font-size:.75rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">View Public Key</div>
+      <div style="font-family:monospace;font-size:.72rem;word-break:break-all;color:var(--text);margin-bottom:4px">${viewPubHex}</div>
+      <button class="btn btn-outline btn-sm" style="width:auto;margin-bottom:12px;gap:6px" onclick="navigator.clipboard.writeText('${viewPubHex}').then(()=>toast('Copied','ok'))"><svg width="12" height="12"><use href="#ic-copy"/></svg> Copy</button>
+      <div style="font-size:.75rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Private Spend Key</div>
+      <div style="font-family:monospace;font-size:.72rem;word-break:break-all;color:var(--red);filter:blur(6px);cursor:pointer;transition:.2s" id="pk-blur" onclick="this.style.filter='none'">${spendHex}</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-outline btn-sm" style="flex:1;gap:6px;font-size:.72rem" onclick="document.getElementById('pk-blur').style.filter='none'"><svg width="12" height="12"><use href="#ic-eye"/></svg> Reveal</button>
+        <button class="btn btn-outline btn-sm" style="flex:1;gap:6px;font-size:.72rem" onclick="navigator.clipboard.writeText('${spendHex}').then(()=>toast('Copied','ok'))"><svg width="12" height="12"><use href="#ic-copy"/></svg> Copy</button>
+      </div>`);
+  }catch(e){toast('Cannot load keys: '+e.message,'err');}
+};
+
+window.removeCurrentAccount=function(){
+  const accts=getAccounts();
+  if(accts.length<=1){toast('Cannot remove last account','err');return;}
+  if(!confirm('Remove this account from device? Make sure you have your recovery phrase backed up.'))return;
+  removeAccount(getActiveId());
+  switchAccount(getAccounts()[0]?.id||'');
+  toast('Account removed','ok');
+};
+
+window.toggleAdvStealth=function(){
+  const on=document.getElementById('adv-stealth-toggle').checked;
+  document.getElementById('adv-stealth-panel').classList.toggle('hidden',!on);
+  document.getElementById('adv-action-btn').classList.toggle('hidden',!on);
+  document.getElementById('send-adv-toggle').classList.toggle('hidden',!on);
+};
+
+window.scanStealth=async function(){
+  const el=document.getElementById('stealth-scan-result');
+  el.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted)"><span class="spinner"></span> Scanning…</div>';
+  try{
+    const vPub=hex(viewPubKey),sPub=hex(pubKey);
+    const res=await fetch(`${API}/scan/${vPub}/${sPub}`).then(r=>r.json());
+    _stealthUtxos=res.utxos||[];
+    if(_stealthUtxos.length){
+      el.innerHTML=`<div class="alert alert-ok">Found ${_stealthUtxos.length} stealth output(s): ${(res.total_spw??0).toFixed(8)} SPW</div>`;
+    }else{
+      el.innerHTML='<div class="alert alert-info">No stealth outputs found.</div>';
+    }
+  }catch(e){el.innerHTML=`<div class="alert alert-err">Scan failed: ${e.message}</div>`;}
+};
+
+function openSheetWith(title,html){
+  document.getElementById('sheet').querySelector('.sheet-title').textContent=title;
+  document.getElementById('sheet-body').innerHTML=html;
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='show '+(type||'ok');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.className='',2200);
+}
+function setMsg(id,type,text){
+  const el=document.getElementById(id);if(!el)return;
+  const cls={err:'alert-err',ok:'alert-ok',info:'alert-info',warn:'alert-warn'}[type]||'alert-info';
+  el.innerHTML=`<div class="alert ${cls}">${text.replace(/\n/g,'<br>')}</div>`;
+}
+function clearMsg(id){const el=document.getElementById(id);if(el)el.innerHTML='';}
+
+// ── Payment Request ───────────────────────────────────────────────────
+const _payParams=(function(){
+  const p=new URLSearchParams(location.search);
+  const to=p.get('pay'), amt=parseInt(p.get('amount')||'0'), label=p.get('label')||'', callback=p.get('callback')||'';
+  if(!to||!amt)return null;
+  return {to,amt,label,callback};
+})();
+
+function _showPayOverlay(){
+  if(!_payParams)return;
+  const {to,amt,label}=_payParams;
+  const spw=(amt/1e8).toFixed(8);
+  document.getElementById('pay-amount-spw').textContent=spw+' SPW';
+  document.getElementById('pay-amount-feat').textContent=amt.toLocaleString()+' feathers';
+  document.getElementById('pay-to').textContent=to.slice(0,14)+'…'+to.slice(-8);
+  if(label){
+    document.getElementById('pay-label').textContent=label;
+    document.getElementById('pay-label-row').style.display='flex';
+  }
+  const ref=document.referrer?new URL(document.referrer).hostname:'';
+  document.getElementById('pay-origin').textContent=ref?'Requested by '+ref:'';
+  document.getElementById('pay-overlay').classList.remove('hidden');
+  const s=document.getElementById('launch-splash');if(s)s.remove();
+}
+
+window.payCancel=function(){
+  if(window.opener){
+    window.opener.postMessage({type:'spw_payment_cancel'},'*');
+    window.close();
+  } else if(_payParams&&_payParams.callback){
+    const sep=_payParams.callback.includes('?')?'&':'?';
+    window.location.href=_payParams.callback+sep+'cancelled=1';
+  } else {
+    document.getElementById('pay-overlay').classList.add('hidden');
+  }
+};
+
+window.payConfirm=async function(){
+  if(!_payParams)return;
+  const btn=document.getElementById('pay-confirm-btn');
+  const statusEl=document.getElementById('pay-status');
+  btn.disabled=true;btn.textContent='Sending…';
+  statusEl.textContent='';
+  try{
+    const {to,amt}=_payParams;
+    const fee=10000;
+    const need=amt+fee;
+    const allU=[..._utxos,..._stealthUtxos];
+    if(!allU.length){
+      await refreshWallet();
+      await new Promise(r=>setTimeout(r,1500));
+    }
+    const all=[..._utxos,..._stealthUtxos];
+    const avail=all.reduce((s,u)=>s+u.amount,0);
+    if(avail<need){statusEl.innerHTML='<span style="color:var(--red)">Insufficient balance (need '+(need/1e8).toFixed(8)+' SPW).</span>';btn.disabled=false;btn.textContent='Confirm Payment';return;}
+    let sel=0;const selU=[];
+    for(const u of all){selU.push(u);sel+=u.amount;if(sel>=need)break;}
+    const change=sel-need;
+    const ts=Math.floor(Date.now()/1000);
+    const pubHex=hex(pubKey);
+    const inputs=selU.map(u=>({prev_txid:u.txid,prev_vout:u.vout,script_sig:'',pubkey:pubHex}));
+    const outputs=[{amount:amt,address:to}];
+    if(change>0)outputs.push({amount:change,address});
+    const digest=signingDigest(inputs,outputs,ts,'');
+    const sigBytes=secp.signSync(digest,privKey,{canonical:true,der:true});
+    const sigHex=hex(sigBytes);
+    const signedInputs=inputs.map(i=>({...i,script_sig:sigHex}));
+    const txid=computeTxid(signedInputs,outputs,ts,'','');
+    const res=await fetch(`${API}/tx/broadcast`,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({txid,inputs:signedInputs,outputs,timestamp:ts,coinbase_data:'',tx_pubkey:''})});
+    const data=await res.json();
+    if(res.ok){
+      statusEl.innerHTML='<span style="color:var(--green)">✓ Sent! TXID: '+data.txid.slice(0,16)+'…</span>';
+      btn.textContent='Done';
+      if(window.opener){
+        window.opener.postMessage({type:'spw_payment_success',txid:data.txid},'*');
+        setTimeout(()=>window.close(),1800);
+      } else if(_payParams.callback){
+        const sep=_payParams.callback.includes('?')?'&':'?';
+        setTimeout(()=>{ window.location.href=_payParams.callback+sep+'txid='+data.txid; },1200);
+      }
+    }else{
+      statusEl.innerHTML='<span style="color:var(--red)">Error: '+data.error+'</span>';
+      btn.disabled=false;btn.textContent='Confirm Payment';
+    }
+  }catch(e){
+    statusEl.innerHTML='<span style="color:var(--red)">'+e.message+'</span>';
+    btn.disabled=false;btn.textContent='Confirm Payment';
+  }
+};
+
+// ── Boot ─────────────────────────────────────────────────────────────
+// Safety: force-remove splash after 4s no matter what
+setTimeout(()=>{ const s=document.getElementById('launch-splash'); if(s)s.remove(); }, 4000);
+const accts=getAccounts();
+if(accts.length&&getActive()){
+  bootMain();
+}else{
+  document.getElementById('onboarding').classList.remove('hidden');
+  document.getElementById('main-app').classList.add('hidden');
+  window.obShow('ob-welcome');
+  _hideSplash();
+}
+
+// ── Service Worker ────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+// ── Browser hint ─────────────────────────────────────────────────────
+(function(){
+  const DISMISSED_KEY = 'spw_browser_hint_v1';
+  if(localStorage.getItem(DISMISSED_KEY)) return;
+
+  const ua = navigator.userAgent;
+  const isStandalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  if(isStandalone) return;
+
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const isSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
+  const isChrome = /Chrome/.test(ua) || /CriOS/.test(ua);
+
+  const banner = document.getElementById('browser-hint');
+  const title  = document.getElementById('bh-title');
+  const desc   = document.getElementById('bh-desc');
+  const icon   = document.getElementById('bh-icon');
+  const steps  = document.getElementById('bh-steps');
+
+  if(window._deferredInstallPrompt){
+    // Desktop Chrome/Edge — native PWA install available
+    icon.textContent = '💻';
+    title.textContent = '安装 SPW 钱包';
+    desc.textContent = '将钱包安装到桌面，无需打开浏览器即可快速访问。';
+    steps.innerHTML = '<button class="bh-install-btn" onclick="window.installPWA()">立即安装</button>';
+    steps.classList.remove('hidden');
+    banner.classList.remove('hidden');
+    window.addEventListener('appinstalled', ()=>{
+      banner.classList.add('hidden');
+      localStorage.setItem(DISMISSED_KEY,'1');
+    });
+  } else if(isSafari){
+    // iOS Safari — guide to Add to Home Screen
+    icon.textContent = '📲';
+    title.textContent = '添加到主屏幕，体验更佳';
+    desc.textContent = '像 App 一样全屏运行，无需浏览器工具栏。';
+    steps.innerHTML =
+      '<div class="bh-step"><div class="bh-step-num">1</div>点击底部工具栏 <strong style="color:var(--text)">分享</strong> 按钮 ⎋</div>' +
+      '<div class="bh-step"><div class="bh-step-num">2</div>选择 <strong style="color:var(--text)">添加到主屏幕</strong></div>' +
+      '<div class="bh-step"><div class="bh-step-num">3</div>点击右上角 <strong style="color:var(--text)">添加</strong> 完成</div>';
+    steps.classList.remove('hidden');
+    banner.classList.remove('hidden');
+  } else if(!isChrome){
+    // Non-Chrome browser (Firefox, Edge, etc.)
+    icon.textContent = '🌐';
+    title.textContent = '推荐使用 Chrome 浏览器';
+    desc.textContent = '当前浏览器可能存在兼容问题，建议使用 Google Chrome 访问以获得最佳体验。';
+    banner.classList.remove('hidden');
+  }
+  // Already using Chrome but no install prompt: already installed or not eligible
+})();
+
+window.dismissBrowserHint = function(){
+  localStorage.setItem('spw_browser_hint_v1', '1');
+  document.getElementById('browser-hint').classList.add('hidden');
+};
+
+window.installPWA = async function(){
+  const prompt = window._deferredInstallPrompt;
+  if(!prompt) return;
+  prompt.prompt();
+  const { outcome } = await prompt.userChoice;
+  window._deferredInstallPrompt = null;
+  if(outcome === 'accepted'){
+    localStorage.setItem('spw_browser_hint_v1', '1');
+    document.getElementById('browser-hint').classList.add('hidden');
+  }
+};
+
+// ── Auto-refresh: poll every 30s + refresh on foreground ─────────────
+let _refreshTimer = null;
+
+function _startPolling(){
+  if(_refreshTimer) return;
+  _refreshTimer = setInterval(()=>{
+    if(address && !document.hidden) window.refreshWallet();
+  }, 30000);
+}
+
+function _stopPolling(){
+  if(_refreshTimer){ clearInterval(_refreshTimer); _refreshTimer=null; }
+}
+
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && address){
+    window.refreshWallet();
+    _startPolling();
+  } else {
+    _stopPolling();
+  }
+});
+
+// iOS PWA: page restored from bfcache
+window.addEventListener('pageshow', e=>{
+  if(e.persisted && address) window.refreshWallet();
+});
+
+// Start polling once wallet is loaded (address is set)
+const _origRefresh = window.refreshWallet;
+window.refreshWallet = async function(){
+  await _origRefresh();
+  _startPolling();
+};
+</script>
+</body>
+</html>
