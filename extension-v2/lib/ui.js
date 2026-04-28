@@ -3,10 +3,20 @@
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// SVG elements MUST be created in the SVG namespace; document.createElement('svg')
+// produces an HTMLUnknownElement that the browser refuses to render. innerHTML on
+// an SVG-namespaced element parses children as SVG too, so the {html: '<path …/>'}
+// shorthand keeps working.
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const SVG_TAGS = new Set(['svg','path','circle','rect','line','polyline','polygon',
+  'g','use','symbol','defs','text','tspan','ellipse']);
+
 export function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
+  const node = SVG_TAGS.has(tag)
+    ? document.createElementNS(SVG_NS, tag)
+    : document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
+    if (k === 'class') node.setAttribute('class', v);
     else if (k === 'html') node.innerHTML = v;
     else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
     else if (v !== false && v != null) node.setAttribute(k, v);
