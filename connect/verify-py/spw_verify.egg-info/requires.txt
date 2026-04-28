@@ -1,0 +1,10 @@
+
+[fast]
+coincurve>=18.0
+
+[pure]
+ecdsa>=0.18
+
+[test]
+pytest>=7
+coincurve>=18.0

@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SPW Connect — Promo Marquee (1400×560)</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .frame {
+    width: 1400px; height: 560px;
+    padding: 72px 96px; box-sizing: border-box;
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center;
+    background:
+      radial-gradient(ellipse at 90% 20%, rgba(124,58,237,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 10% 80%, rgba(0,224,255,0.25) 0%, transparent 55%),
+      var(--bg);
+  }
+  .left h1 {
+    font-size: 3.2rem; font-weight: 900; line-height: 1.05; letter-spacing: -0.02em;
+    margin: 0 0 20px 0;
+  }
+  .left h1 .grad {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .left p {
+    color: #9aa3b8; font-size: 1.15rem; line-height: 1.6; margin: 0 0 28px 0; max-width: 560px;
+  }
+  .left .pills { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill {
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px;
+    color: #c7d2fe; font-size: .85rem;
+  }
+  .right {
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .hero-bird {
+    width: 420px; height: 420px;
+    object-fit: contain;
+    filter: drop-shadow(0 30px 70px rgba(124,58,237,.45))
+            drop-shadow(0 8px 20px rgba(0,224,255,.25));
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="left">
+      <h1>One click.<br>One signature.<br><span class="grad">Any dApp.</span></h1>
+      <p>
+        SPW Wallet Connect is the tiny bridge that lets websites detect your wallet
+        and request a signature — without passwords, accounts, or redirects that
+        leak data. Your keys never enter the extension.
+      </p>
+      <div class="pills">
+        <span class="pill">Manifest V3</span>
+        <span class="pill">Zero dependencies</span>
+        <span class="pill">Zero telemetry</span>
+        <span class="pill">MIT licensed</span>
+      </div>
+    </div>
+
+    <div class="right">
+      <img class="hero-bird" src="sparrow.png" alt="SPW sparrow">
+    </div>
+  </div>
+</body>
+</html>

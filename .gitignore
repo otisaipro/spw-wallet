@@ -3,3 +3,6 @@ __pycache__/
 *.pyo
 .claude/
 .DS_Store
+node_modules/
+.venv/
+*.zip

@@ -1,0 +1,54 @@
+/* Shared palette & type for all SPW Connect screenshots.
+ * Colours match popup.html so the store assets and the live UI are consistent. */
+:root {
+  --bg:       #0a0e1a;
+  --card:     #141928;
+  --card-2:   #1b2136;
+  --text:     #e5e7eb;
+  --muted:    #6b7280;
+  --accent-a: #7c3aed;
+  --accent-b: #00e0ff;
+  --ok:       #10b981;
+  --warn:     #f59e0b;
+  --border:   #232a42;
+}
+html, body { margin: 0; padding: 0; background: #000; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, "Inter", "Helvetica Neue", sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.frame {
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+.brand {
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.mono {
+  font-family: "SF Mono", "Menlo", "Consolas", "DejaVu Sans Mono", monospace;
+}
+.btn-primary {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+  cursor: pointer;
+}
+.dot-ok {
+  display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ok);
+  margin-right: 6px;
+  vertical-align: middle;
+}

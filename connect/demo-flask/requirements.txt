@@ -1,0 +1,3 @@
+Flask>=3.0
+spw-verify>=1.0
+coincurve>=18.0

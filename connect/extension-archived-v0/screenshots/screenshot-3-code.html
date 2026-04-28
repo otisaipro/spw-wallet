@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SPW Connect — Screenshot 3 (1280×800)</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .frame {
+    width: 1280px; height: 800px;
+    padding: 60px 80px; box-sizing: border-box;
+    background: linear-gradient(160deg, #0d1324 0%, var(--bg) 100%);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center;
+  }
+  .col h2 {
+    font-size: 2rem; font-weight: 800; letter-spacing: -0.01em;
+    margin: 0 0 14px 0;
+  }
+  .col h2 .grad {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .col p {
+    color: #9aa3b8; font-size: 1rem; line-height: 1.65; margin: 0 0 22px 0;
+  }
+  .bullets { list-style: none; padding: 0; margin: 0; }
+  .bullets li {
+    padding: 10px 0 10px 26px; position: relative; color: var(--text);
+    font-size: .95rem;
+  }
+  .bullets li::before {
+    content: ""; position: absolute; left: 0; top: 16px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+  }
+  .code {
+    background: #080b16; border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px; font-family: "SF Mono","Menlo","Consolas",monospace;
+    font-size: .88rem; line-height: 1.7; color: #c7d2fe;
+    box-shadow: 0 20px 48px rgba(0,0,0,.5);
+  }
+  .code .c { color: #6b7280; }            /* comment */
+  .code .k { color: #c084fc; }            /* keyword */
+  .code .s { color: #86efac; }            /* string */
+  .code .f { color: #7dd3fc; }            /* function */
+  .code .p { color: #f9a8d4; }            /* property */
+  .code .n { color: #fde68a; }            /* number/literal */
+  .filename {
+    color: var(--muted); font-size: .78rem; letter-spacing: .1em;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="col">
+      <h2>Add sign-in in <span class="grad">6 lines.</span></h2>
+      <p>
+        Drop the SDK into any web page. It automatically prefers the extension when
+        installed, and falls back to wallet.spw.network when it isn't.
+      </p>
+      <ul class="bullets">
+        <li>One-time nonce → ECDSA signature (secp256k1)</li>
+        <li>Verify server-side with <span class="mono">spw-verify</span> (Node or Python)</li>
+        <li>No OAuth, no email, no password store to breach</li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <div class="filename">index.html</div>
+      <div class="code">
+<span class="k">&lt;script</span> <span class="p">src</span>=<span class="s">"https://spw.network/connect.js"</span><span class="k">&gt;&lt;/script&gt;</span><br>
+<span class="k">&lt;script&gt;</span><br>
+&nbsp;&nbsp;<span class="c">// nonce from your backend, one-time, 8-128 chars</span><br>
+&nbsp;&nbsp;<span class="k">const</span> nonce = <span class="s">"a3f19c...9b2e"</span>;<br>
+&nbsp;&nbsp;<span class="k">const</span> r = <span class="k">await</span> <span class="f">SPWConnect</span>.<span class="f">signIn</span>({ nonce });<br>
+&nbsp;&nbsp;<span class="c">// r = { address, pubkey, nonce, sig }</span><br>
+&nbsp;&nbsp;<span class="k">await</span> <span class="f">fetch</span>(<span class="s">"/api/wallet/link"</span>, {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="p">method</span>: <span class="s">"POST"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="p">headers</span>: { <span class="s">"Content-Type"</span>: <span class="s">"application/json"</span> },<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="p">body</span>: <span class="f">JSON</span>.<span class="f">stringify</span>(r),<br>
+&nbsp;&nbsp;});<br>
+<span class="k">&lt;/script&gt;</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

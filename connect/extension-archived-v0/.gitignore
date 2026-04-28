@@ -1,0 +1,3 @@
+# Build artefacts and captured screenshots should not live in git.
+spw-wallet-connect-v*.zip
+screenshots/out/

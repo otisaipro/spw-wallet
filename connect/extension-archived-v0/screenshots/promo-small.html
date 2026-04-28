@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SPW Connect — Promo Small (440×280)</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .frame {
+    width: 440px; height: 280px;
+    padding: 28px 30px; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: space-between;
+    background:
+      radial-gradient(ellipse at top right, rgba(124,58,237,0.3) 0%, transparent 55%),
+      radial-gradient(ellipse at bottom left, rgba(0,224,255,0.25) 0%, transparent 55%),
+      var(--bg);
+  }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .brand-wrap {
+    font-size: 1.35rem; font-weight: 800; line-height: 1.1;
+  }
+  .brand-wrap .small {
+    display: block; color: #9aa3b8; font-weight: 500; font-size: .72rem;
+    letter-spacing: .18em; text-transform: uppercase; margin-top: 4px;
+  }
+  .logo {
+    width: 56px; height: 56px;
+    object-fit: contain;
+    display: block;
+  }
+  .tag {
+    font-size: 1.15rem; font-weight: 700; line-height: 1.25;
+  }
+  .tag .grad {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .bottom-row {
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted); font-size: .75rem;
+  }
+  .pill {
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px;
+    color: #c7d2fe;
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="top">
+      <div class="brand-wrap">
+        <span class="brand">SPW Wallet Connect</span>
+        <span class="small">Chrome Extension</span>
+      </div>
+      <img class="logo" src="sparrow.png" alt="SPW sparrow">
+    </div>
+
+    <div class="tag">
+      Sign in to any dApp with <span class="grad">one signature.</span>
+    </div>
+
+    <div class="bottom-row">
+      <div><span class="dot-ok"></span>Zero data collection</div>
+      <div class="pill">Open source</div>
+    </div>
+  </div>
+</body>
+</html>

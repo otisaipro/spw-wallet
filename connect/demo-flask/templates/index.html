@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SPW Connect Demo</title>
+  <style>
+    :root { --bg:#0a0e1a; --fg:#e5e7eb; --muted:#6b7280; --purple:#7c3aed; --cyan:#00e0ff; --card:#0f1525; --border:rgba(99,102,241,.2); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; max-width: 440px; width: 100%; }
+    h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; background: linear-gradient(135deg,var(--purple),var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .sub { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: #141928; border-radius: 10px; margin-bottom: 10px; font-size: .9rem; }
+    .row-k { color: var(--muted); }
+    .row-v { font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-weight: 600; word-break: break-all; max-width: 60%; text-align: right; }
+    button { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 700; font-size: .95rem; cursor: pointer; transition: transform .1s; }
+    button:active { transform: scale(.98); }
+    .btn-primary { background: linear-gradient(135deg,var(--purple),var(--cyan)); color: white; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); margin-top: 8px; }
+    .status { margin-top: 14px; font-size: .85rem; text-align: center; min-height: 20px; }
+    .status.ok { color: #10b981; }
+    .status.err { color: #f87171; }
+    .hint { margin-top: 22px; font-size: .78rem; color: var(--muted); text-align: center; line-height: 1.6; }
+    .credits { font-size: 2.4rem; font-weight: 900; color: var(--cyan); text-align: center; margin: 14px 0 6px; }
+    .credits-label { text-align: center; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 22px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>SPW Connect Demo</h1>
+    <p class="sub">Reference dApp — connect an SPW wallet, earn credits.</p>
+
+    {% if address %}
+      <div class="credits">{{ credits }}</div>
+      <div class="credits-label">Credits</div>
+      <div class="row"><span class="row-k">Address</span><span class="row-v">{{ address[:14] }}…{{ address[-6:] }}</span></div>
+      <button class="btn-primary" id="earn">Earn +10 credits</button>
+      <button class="btn-ghost" id="logout">Disconnect</button>
+    {% else %}
+      <button class="btn-primary" id="connect">Connect Wallet</button>
+      <p class="hint">
+        Requires an SPW Wallet (<a href="{{ wallet_url }}" style="color:var(--cyan)" target="_blank" rel="noopener">web</a> or extension).
+        <br>Your private key never leaves your wallet.
+      </p>
+    {% endif %}
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- In production, load from CDN: https://spw.network/connect.js -->
+  <script src="/static/spw-connect.js"></script>
+  <script>
+    const WALLET_URL = {{ wallet_url|tojson }};
+    const statusEl = document.getElementById('status');
+    function say(msg, cls) { statusEl.className = 'status ' + (cls || ''); statusEl.textContent = msg; }
+
+    const connectBtn = document.getElementById('connect');
+    if (connectBtn) {
+      connectBtn.onclick = async () => {
+        connectBtn.disabled = true;
+        say('Requesting nonce…');
+        try {
+          const { nonce, app } = await fetch('/api/wallet/nonce', { method: 'POST' }).then(r => r.json());
+          say('Approve in your wallet…');
+          const result = await SPWConnect.signIn({ nonce, app, walletUrl: WALLET_URL });
+          say('Verifying…');
+          const resp = await fetch('/api/wallet/link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(result),
+          }).then(r => r.json());
+          if (resp.ok) { say('Connected! Reloading…', 'ok'); setTimeout(() => location.reload(), 600); }
+          else { say('Server: ' + (resp.error || 'unknown error'), 'err'); connectBtn.disabled = false; }
+        } catch (e) {
+          say(e.code ? `${e.code}: ${e.message}` : e.message, 'err');
+          connectBtn.disabled = false;
+        }
+      };
+    }
+
+    const earnBtn = document.getElementById('earn');
+    if (earnBtn) {
+      earnBtn.onclick = async () => {
+        const r = await fetch('/api/credits/earn', { method: 'POST' }).then(r => r.json());
+        if (r.credits != null) { say('+10 credits earned', 'ok'); setTimeout(() => location.reload(), 400); }
+        else say(r.error || 'failed', 'err');
+      };
+    }
+
+    const logoutBtn = document.getElementById('logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = async () => {
+        await fetch('/api/logout', { method: 'POST' });
+        location.reload();
+      };
+    }
+  </script>
+</body>
+</html>

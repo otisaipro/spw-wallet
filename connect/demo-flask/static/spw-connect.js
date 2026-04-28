@@ -1,0 +1,1 @@
+../../sdk-js/spw-connect.js

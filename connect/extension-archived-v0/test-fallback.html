@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SPW Connect — fallback self-test</title>
+<style>
+  :root {
+    --bg: #0a0e1a; --card: #141928; --text: #e5e7eb; --muted: #6b7280;
+    --accent-a: #7c3aed; --accent-b: #00e0ff; --ok: #10b981; --err: #ef4444;
+    --border: #232a42;
+  }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif; min-height: 100vh;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 48px 28px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px 0; font-weight: 800;
+       background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  h2 { font-size: 1.05rem; margin: 28px 0 10px 0; color: #c7d2fe; }
+  .sub { color: var(--muted); margin: 0 0 30px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+          padding: 20px; margin-bottom: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center;
+         padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: .92rem; }
+  .row:last-child { border-bottom: 0; }
+  .row b { color: var(--muted); font-weight: 500; }
+  .pill { padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+  .pill.ok  { background: rgba(16,185,129,.15); color: var(--ok); }
+  .pill.no  { background: rgba(239,68,68,.15);  color: var(--err); }
+  button { border: 0; border-radius: 10px; padding: 12px 22px; font-weight: 700;
+           color: white; cursor: pointer; font-size: .95rem;
+           background: linear-gradient(135deg, var(--accent-a), var(--accent-b)); }
+  button + button { margin-left: 10px;
+           background: transparent; border: 1px solid var(--border); color: var(--text); }
+  pre { background: #080b16; border: 1px solid var(--border); border-radius: 10px;
+        padding: 14px; color: #c7d2fe; font-size: .82rem; overflow: auto; max-height: 320px;
+        white-space: pre-wrap; word-break: break-all; }
+  .log-line { font-family: "SF Mono", "Menlo", monospace; font-size: .8rem; padding: 3px 0; }
+  .log-line .t { color: var(--muted); margin-right: 8px; }
+  .log-line .s-ok { color: var(--ok); }
+  .log-line .s-err { color: var(--err); }
+  .log-line .s-info { color: #c7d2fe; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SPW Connect self-test</h1>
+  <p class="sub">
+    Verifies the sign-in flow works <strong>both with and without</strong> the extension.
+    Keep this page open, then toggle the extension on/off in <code>chrome://extensions</code>
+    and re-run "Sign in" to exercise both paths.
+  </p>
+
+  <h2>Environment</h2>
+  <div class="card" id="env-card">
+    <div class="row"><b>SDK loaded</b><span id="sdk-state" class="pill no">checking…</span></div>
+    <div class="row"><b>window.spw (extension present)</b><span id="ext-state" class="pill no">checking…</span></div>
+    <div class="row"><b>Expected flow</b><span id="expected" class="pill ok">—</span></div>
+    <div class="row"><b>Origin</b><span id="origin" class="mono">—</span></div>
+  </div>
+
+  <h2>Run sign-in</h2>
+  <div class="card">
+    <div class="row" style="border: 0; padding-bottom: 14px;">
+      <b>Nonce (one-time, 8-128 chars of [A-Za-z0-9_-])</b>
+      <span id="nonce-display" class="mono"></span>
+    </div>
+    <button id="btn-sign">Sign in with SPW Wallet</button>
+    <button id="btn-force-popup">Force popup path (ignore extension)</button>
+  </div>
+
+  <h2>Result</h2>
+  <div class="card">
+    <pre id="result">no result yet — click "Sign in" above</pre>
+  </div>
+
+  <h2>Log</h2>
+  <div class="card" id="log-card"></div>
+</main>
+
+<script src="../sdk-js/spw-connect.js"></script>
+<script>
+  // ---- tiny helpers ----------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  const setPill = (id, ok, text) => {
+    const el = $(id);
+    el.className = 'pill ' + (ok ? 'ok' : 'no');
+    el.textContent = text;
+  };
+  const log = (msg, level = 'info') => {
+    const t = new Date().toISOString().slice(11, 19);
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = `<span class="t">${t}</span><span class="s-${level}">${msg}</span>`;
+    $('log-card').appendChild(div);
+  };
+
+  // Random nonce that matches the SDK's [A-Za-z0-9_-]{8,128} regex.
+  function randNonce() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+    const out = new Uint8Array(32);
+    crypto.getRandomValues(out);
+    return Array.from(out, (b) => chars[b % chars.length]).join('');
+  }
+
+  // ---- environment panel ------------------------------------------------
+  $('origin').textContent = location.origin || '(file://)';
+  const hasSDK = !!window.SPWConnect;
+  setPill('sdk-state', hasSDK, hasSDK ? 'loaded' : 'MISSING');
+  if (!hasSDK) {
+    log('SPWConnect SDK did not load. Check that connect/sdk-js/spw-connect.js is reachable at ../sdk-js/spw-connect.js.', 'err');
+  }
+
+  const hasExt = hasSDK && SPWConnect.isExtensionAvailable();
+  setPill('ext-state', hasExt, hasExt ? 'installed' : 'not installed');
+  setPill('expected', true, hasExt ? 'extension path' : 'fallback popup → wallet.spw.network');
+
+  const nonce = randNonce();
+  $('nonce-display').textContent = nonce.slice(0, 12) + '… (' + nonce.length + ' chars)';
+
+  // ---- button handlers --------------------------------------------------
+  async function run(forcePopup) {
+    $('result').textContent = 'waiting for user approval…';
+    log(forcePopup ? 'calling signIn({ preferExtension:false })' : 'calling signIn({…})');
+
+    try {
+      const r = await SPWConnect.signIn({
+        nonce,
+        app: 'spw-connect-selftest',
+        preferExtension: !forcePopup,
+      });
+      $('result').textContent = JSON.stringify(r, null, 2);
+      log('sign-in OK — got { address, pubkey, nonce, sig }', 'ok');
+    } catch (e) {
+      $('result').textContent = 'ERROR: ' + (e.code || 'UNKNOWN') + ' — ' + e.message;
+      log('sign-in failed: ' + (e.code || 'UNKNOWN') + ' — ' + e.message, 'err');
+    }
+  }
+
+  $('btn-sign').addEventListener('click', () => run(false));
+  $('btn-force-popup').addEventListener('click', () => run(true));
+
+  log('self-test page ready. origin=' + (location.origin || 'file://'));
+  log('expected flow: ' + (hasExt ? 'extension (window.spw.requestSignIn)' : 'fallback popup to wallet.spw.network'));
+</script>
+</body>
+</html>

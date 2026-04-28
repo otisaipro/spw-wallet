@@ -1,0 +1,21 @@
+{
+  "name": "spw-connect",
+  "version": "1.0.0",
+  "description": "SPW Wallet sign-in SDK — lets any dApp prove a user owns an SPW address",
+  "main": "spw-connect.js",
+  "browser": "spw-connect.js",
+  "types": "spw-connect.d.ts",
+  "files": [
+    "spw-connect.js",
+    "spw-connect.d.ts",
+    "README.md"
+  ],
+  "keywords": ["spw", "wallet", "sign-in", "web3", "siwe"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/otisaipro/spw-wallet.git",
+    "directory": "connect/sdk-js"
+  },
+  "homepage": "https://github.com/otisaipro/spw-wallet/tree/main/connect"
+}

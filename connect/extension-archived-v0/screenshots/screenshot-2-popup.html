@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SPW Connect — Screenshot 2 (1280×800)</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .frame {
+    width: 1280px; height: 800px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #1a1f3a 0%, var(--bg) 70%);
+  }
+  .kicker {
+    color: var(--muted); font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .18em; margin-bottom: 14px;
+  }
+  .title {
+    font-size: 2rem; font-weight: 800; margin: 0 0 8px 0; letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: #9aa3b8; font-size: 1rem; max-width: 640px; text-align: center;
+    margin: 0 0 44px 0; line-height: 1.55;
+  }
+  .popup-card {
+    width: 360px; background: var(--card); border-radius: 16px; padding: 26px;
+    border: 1px solid var(--border);
+    box-shadow: 0 30px 80px rgba(124,58,237,.3), 0 6px 16px rgba(0,0,0,.5);
+  }
+  .popup-card .brand { text-align: center; font-size: 1.25rem; margin-bottom: 6px; }
+  .popup-card .active { text-align: center; color: var(--muted); font-size: .82rem; margin-bottom: 22px; }
+  .popup-row {
+    padding: 13px 15px; background: var(--card-2); border-radius: 10px;
+    margin-bottom: 11px; font-size: .87rem; line-height: 1.55;
+  }
+  .popup-row code {
+    background: #0a0e1a; padding: 2px 6px; border-radius: 4px; color: var(--accent-b);
+    font-size: .82rem;
+  }
+  .popup-btn {
+    width: 100%; padding: 12px; border-radius: 10px; border: 0;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: white; font-weight: 700; margin-top: 12px; font-size: .95rem;
+  }
+  .call-outs {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+    margin-top: 50px; max-width: 920px;
+  }
+  .co {
+    text-align: center; color: var(--muted); font-size: .85rem;
+    border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px;
+    background: rgba(20,25,40,0.6);
+  }
+  .co b { color: var(--text); display: block; margin-bottom: 4px; font-size: .95rem; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="kicker">Toolbar popup</div>
+    <h2 class="title">Minimal by design.</h2>
+    <p class="subtitle">
+      The extension shows a status popup so you know it's active. No keys, no balances,
+      no forms — the real wallet lives in a window you already trust.
+    </p>
+
+    <div class="popup-card">
+      <div class="brand">SPW Wallet</div>
+      <div class="active"><span class="dot-ok"></span>Active on this page</div>
+
+      <div class="popup-row">
+        dApps on this page can now request sign-in via <code>window.spw</code>.
+      </div>
+      <div class="popup-row">
+        Your keys, accounts, and balance are in the full wallet.
+      </div>
+
+      <button class="popup-btn">Open Full Wallet</button>
+    </div>
+
+    <div class="call-outs">
+      <div class="co"><b>180 lines of JS</b>no dependencies</div>
+      <div class="co"><b>No background worker</b>no idle CPU</div>
+      <div class="co"><b>Zero network calls</b>by the extension</div>
+    </div>
+  </div>
+</body>
+</html>

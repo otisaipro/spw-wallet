@@ -1,0 +1,85 @@
+# spw-verify (Python)
+
+Server-side verifier for [SPW Connect](../SPEC.md) sign-in proofs.
+
+## Install
+
+```bash
+pip install spw-verify coincurve
+```
+
+`coincurve` is recommended (native, fast). Pure-Python fallback:
+```bash
+pip install spw-verify ecdsa
+```
+
+## Usage
+
+```python
+from spw_verify import verify, InvalidSignature
+
+# Your API receives {address, pubkey, nonce, sig} from the dApp frontend.
+# The `app` label must come from YOUR records (keyed by nonce), not the request body.
+try:
+    verify(
+        address=body["address"],
+        pubkey=body["pubkey"],
+        nonce=body["nonce"],
+        sig=body["sig"],
+        app=stored_app_label_for_this_nonce,
+    )
+except InvalidSignature as e:
+    return {"error": e.reason}, 400
+
+# Still check server-side:
+# - nonce exists, unconsumed, fresh (<= 5 min)
+# - consume the nonce atomically before binding address→session
+```
+
+Non-raising variant: `verify_raw(...)` → `bool`.
+
+## Example: Flask endpoint
+
+```python
+from flask import Flask, request, jsonify
+from spw_verify import verify, InvalidSignature
+import time, secrets
+
+app = Flask(__name__)
+NONCES = {}  # nonce -> {"app": str, "created": float, "consumed": bool, "sid": str}
+
+@app.post("/api/wallet/nonce")
+def issue():
+    sid = request.cookies.get("sid") or secrets.token_hex(16)
+    n = secrets.token_urlsafe(24)
+    NONCES[n] = {"app": "myapp.com", "created": time.time(),
+                 "consumed": False, "sid": sid}
+    resp = jsonify({"nonce": n}); resp.set_cookie("sid", sid, max_age=3600); return resp
+
+@app.post("/api/wallet/link")
+def link():
+    b = request.get_json()
+    rec = NONCES.get(b["nonce"])
+    if not rec: return {"error": "unknown nonce"}, 400
+    if rec["consumed"]: return {"error": "nonce reused"}, 400
+    if time.time() - rec["created"] > 300: return {"error": "nonce expired"}, 400
+    try:
+        verify(address=b["address"], pubkey=b["pubkey"],
+               nonce=b["nonce"], sig=b["sig"], app=rec["app"])
+    except InvalidSignature as e:
+        return {"error": e.reason}, 400
+    rec["consumed"] = True
+    # bind address to session rec["sid"]
+    return {"ok": True, "address": b["address"]}
+```
+
+## Test
+
+```bash
+pip install -e ".[test]"
+pytest
+```
+
+## License
+
+MIT

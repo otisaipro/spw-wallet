@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+spw_verify/__init__.py
+spw_verify.egg-info/PKG-INFO
+spw_verify.egg-info/SOURCES.txt
+spw_verify.egg-info/dependency_links.txt
+spw_verify.egg-info/requires.txt
+spw_verify.egg-info/top_level.txt
+tests/test_verify.py

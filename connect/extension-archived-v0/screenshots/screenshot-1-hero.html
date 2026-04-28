@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SPW Connect — Screenshot 1 (1280×800)</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .frame { width: 1280px; height: 800px; display: grid; grid-template-columns: 1fr 380px; }
+  /* ── Left side: mock dApp ────────────────────────────────── */
+  .dapp {
+    padding: 56px 64px;
+    background: radial-gradient(ellipse at top left, #1a1f3a 0%, var(--bg) 55%);
+    position: relative;
+  }
+  .dapp-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 48px;
+  }
+  .dapp-logo { font-size: 1.15rem; font-weight: 800; color: #c7d2fe; }
+  .dapp-logo .dot-sm { color: var(--accent-b); }
+  .nav { color: var(--muted); font-size: .85rem; }
+  .nav span { margin-left: 22px; }
+  .headline {
+    font-size: 2.6rem; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em;
+    margin: 0 0 18px 0;
+  }
+  .headline .grad {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .sub {
+    font-size: 1.05rem; color: #9aa3b8; max-width: 520px; line-height: 1.6;
+    margin: 0 0 34px 0;
+  }
+  .cta-row { display: flex; gap: 14px; align-items: center; }
+  .cta-ghost {
+    padding: 12px 20px; border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); background: transparent; font-weight: 600;
+  }
+  .trust-row {
+    margin-top: 56px; display: flex; gap: 22px; align-items: center;
+    color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .12em;
+  }
+  .trust-pill {
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px;
+    color: #c7d2fe;
+  }
+  /* ── Right side: extension popup card ─────────────────────── */
+  .right-side {
+    background: linear-gradient(180deg, #0d1324 0%, #080b16 100%);
+    padding: 80px 30px; display: flex; align-items: flex-start; justify-content: center;
+    border-left: 1px solid var(--border);
+    position: relative;
+  }
+  .popup-card {
+    width: 320px;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 24px 60px rgba(124,58,237,.25), 0 4px 12px rgba(0,0,0,.4);
+    border: 1px solid var(--border);
+  }
+  .popup-card .brand { text-align: center; font-size: 1.15rem; margin-bottom: 4px; }
+  .popup-card .active { text-align: center; color: var(--muted); font-size: .78rem; margin-bottom: 18px; }
+  .popup-row {
+    padding: 11px 13px; background: var(--card-2); border-radius: 9px;
+    margin-bottom: 9px; font-size: .82rem; line-height: 1.5;
+  }
+  .popup-row code {
+    background: #0a0e1a; padding: 1px 5px; border-radius: 4px; color: var(--accent-b);
+    font-size: .78rem;
+  }
+  .popup-btn {
+    width: 100%; padding: 11px; border-radius: 9px; border: 0;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: white; font-weight: 700; margin-top: 10px;
+  }
+  .popup-caret {
+    position: absolute; top: 44px; right: 330px;
+    border-style: solid; border-width: 10px;
+    border-color: transparent transparent transparent var(--border);
+    display: none; /* set to block if you want the pointer */
+  }
+  .floating-label {
+    position: absolute; top: 38px; right: 58px;
+    color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .14em;
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="dapp">
+      <div class="dapp-topbar">
+        <div class="dapp-logo">acme<span class="dot-sm">.finance</span></div>
+        <div class="nav"><span>Markets</span><span>Docs</span><span>Forum</span></div>
+      </div>
+
+      <h1 class="headline">
+        Sign in to any dApp with<br>
+        <span class="grad">one click.</span>
+      </h1>
+      <p class="sub">
+        Install SPW Wallet Connect. Websites detect your wallet, request a signature,
+        and you approve it in your own wallet — no passwords, no accounts,
+        no data trails.
+      </p>
+      <div class="cta-row">
+        <button class="btn-primary">Sign in with SPW&nbsp;Wallet</button>
+        <button class="cta-ghost">Learn more</button>
+      </div>
+
+      <div class="trust-row">
+        <div class="trust-pill">Open source</div>
+        <div class="trust-pill">Zero telemetry</div>
+        <div class="trust-pill">Manifest V3</div>
+      </div>
+    </div>
+
+    <div class="right-side">
+      <div class="floating-label">extension popup</div>
+      <div class="popup-card">
+        <div class="brand">SPW Wallet</div>
+        <div class="active"><span class="dot-ok"></span>Active on this page</div>
+
+        <div class="popup-row">
+          dApps on this page can request sign-in via <code>window.spw</code>.
+        </div>
+        <div class="popup-row">
+          Your keys, accounts, and balance stay in the full wallet.
+        </div>
+
+        <button class="popup-btn">Open Full Wallet</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
