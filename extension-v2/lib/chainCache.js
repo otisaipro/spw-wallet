@@ -7,7 +7,7 @@
 // herd). Stale-while-revalidate semantics: a soft-stale cache resolves
 // immediately and a background refresh runs.
 
-import { getBalance, getExplorer } from './rpc.js';
+import { getBalance, getExplorer, getUtxos } from './rpc.js';
 
 const TTL_MS = 30_000;          // hard freshness — younger than this = fresh
 const SOFT_TTL_MS = 5_000;       // serve stale + revalidate when older than this
@@ -111,4 +111,40 @@ export function invalidate(addr) {
     _balance.clear();
     _explorer.clear();
   }
+}
+
+// ── Pending-spent UTXO tracker (anti-double-spend in-wallet) ────────
+// /utxos/<addr> only knows about CONFIRMED state. If the user broadcasts a
+// tx and immediately tries to send another, both selections will see the
+// same UTXOs as available — the second tx will conflict with the first
+// once a block lands. We compensate by remembering UTXOs we already spent
+// in flight, so subsequent sends skip them. Entries are dropped when the
+// confirmed UTXO set no longer reports them (the tx confirmed) or after
+// a TTL (we gave up on this tx).
+const PENDING_TTL_MS = 10 * 60 * 1000; // 10 min — much longer than typical block time
+const _pendingSpent = new Map(); // "txid:vout" → expiry timestamp
+
+function _gcPending() {
+  const now = _now();
+  for (const [k, exp] of _pendingSpent) if (exp < now) _pendingSpent.delete(k);
+}
+
+export function markUtxosPendingSpent(utxos) {
+  const exp = _now() + PENDING_TTL_MS;
+  for (const u of utxos) _pendingSpent.set(`${u.txid}:${u.vout}`, exp);
+}
+
+// Fetch /utxos and filter out anything we have a pending-spent record for.
+// Also self-heals: if a UTXO is no longer in the confirmed list we remove
+// it from the pending tracker (it confirmed and was consumed).
+export async function fetchAvailableUtxos(addr) {
+  _gcPending();
+  const resp = await getUtxos(addr);
+  const all = (resp && resp.utxos) ? resp.utxos
+            : (Array.isArray(resp) ? resp : []);
+  const seen = new Set(all.map(u => `${u.txid}:${u.vout}`));
+  for (const k of _pendingSpent.keys()) {
+    if (!seen.has(k)) _pendingSpent.delete(k); // confirmed/cleared
+  }
+  return all.filter(u => !_pendingSpent.has(`${u.txid}:${u.vout}`));
 }

@@ -3,8 +3,8 @@
 
 import { secp, hex, isValidSpwAddress, signingDigest, computeTxid } from '../lib/spw.js';
 import { getSessionSync, touchSession, verifyPassword } from '../lib/vault.js';
-import { getUtxos, broadcastTx } from '../lib/rpc.js';
-import { fetchBalance, invalidate } from '../lib/chainCache.js';
+import { broadcastTx } from '../lib/rpc.js';
+import { fetchBalance, fetchAvailableUtxos, markUtxosPendingSpent, invalidate } from '../lib/chainCache.js';
 import { el, clear, toast, fmtSpw, reviewModal, passwordPrompt } from '../lib/ui.js';
 
 const FEATHERS = 100_000_000;            // 1 SPW = 1e8 feathers
@@ -96,11 +96,13 @@ export function renderSend(container, router) {
 
     const need = amt + fee;
 
-    // ── Load UTXOs ──
+    // ── Load UTXOs (already filtered by the in-wallet pending-spent set,
+    //               so we never reuse a UTXO that's still in flight from
+    //               a previous unconfirmed broadcast). ──
     reviewBtn.disabled = true;
     reviewBtn.textContent = 'Loading…';
-    let utxosResp;
-    try { utxosResp = await getUtxos(sess.address); }
+    let allRaw;
+    try { allRaw = await fetchAvailableUtxos(sess.address); }
     catch (e) {
       setMsg('Could not load your unspent outputs: ' + e.message, 'err');
       reviewBtn.disabled = false; reviewBtn.textContent = 'Review';
@@ -108,9 +110,10 @@ export function renderSend(container, router) {
     }
     reviewBtn.disabled = false; reviewBtn.textContent = 'Review';
 
-    const allRaw = (utxosResp && utxosResp.utxos) ? utxosResp.utxos
-                 : (Array.isArray(utxosResp) ? utxosResp : []);
-    if (!allRaw.length) { setMsg('No unspent outputs available.', 'err'); return; }
+    if (!allRaw.length) {
+      setMsg('No unspent outputs available. (If you just broadcast a tx, wait for it to confirm before sending again.)', 'err');
+      return;
+    }
 
     // Sort ascending for smallest-first selection (privacy-preserving).
     const all = allRaw.slice().sort((a, b) => a.amount - b.amount);
@@ -215,7 +218,10 @@ export function renderSend(container, router) {
         return;
       }
 
-      // ── Success: clear form, invalidate cache, jump to Activity ──
+      // ── Success: mark in-flight, clear form, invalidate cache, jump ──
+      // Marking UTXOs as pending-spent prevents the next Send from picking
+      // the same coins before this tx confirms (root cause of mempool poisoning).
+      markUtxosPendingSpent(pending.selected);
       toInp.value = ''; amtInp.value = ''; memoInp.value = '';
       setMsg(`Broadcast! TXID ${(res.txid || txid).slice(0, 16)}…`, 'ok');
       toast('Transaction sent');
