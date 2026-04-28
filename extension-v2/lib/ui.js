@@ -62,6 +62,71 @@ export async function copySensitive(text, ttlMs = 60_000) {
   }, ttlMs);
 }
 
+// Larger detail-review modal — used for transaction review where the body is
+// a structured rows-table rather than a sentence. Returns true on confirm.
+// opts: { title, rows: [[label, value], ...], confirmText, cancelText, warning }
+//   - warning: optional yellow callout shown above the buttons
+export function reviewModal(opts) {
+  return new Promise(resolve => {
+    const overlay = el('div', {
+      style: 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;' +
+             'display:flex;align-items:center;justify-content:center;padding:14px',
+    });
+    const card = el('div', {
+      style: 'background:var(--bg2);border:1px solid var(--border2);border-radius:14px;' +
+             'padding:18px;width:100%;max-width:340px;animation:fadeUp .18s ease both;' +
+             'box-shadow:0 10px 40px rgba(0,0,0,.7)',
+    });
+    card.appendChild(el('div', {
+      style: 'font-size:1rem;font-weight:800;margin-bottom:12px',
+    }, [opts.title || 'Review']));
+
+    const table = el('div', {
+      style: 'background:var(--bg3);border:1px solid var(--border);border-radius:10px;' +
+             'padding:6px 12px;margin-bottom:12px',
+    });
+    for (const [k, v] of (opts.rows || [])) {
+      const right = (typeof v === 'string') ? el('span', { style: 'color:var(--text);font-weight:600' }, [v]) : v;
+      table.appendChild(el('div', {
+        style: 'display:flex;justify-content:space-between;align-items:center;' +
+               'padding:8px 0;font-size:.84rem;border-bottom:1px solid var(--border);gap:10px',
+      }, [
+        el('span', { style: 'color:var(--muted)' }, [k]),
+        right,
+      ]));
+    }
+    // Strip the trailing border-bottom so the last row sits flush.
+    if (table.lastChild) table.lastChild.style.borderBottom = 'none';
+    card.appendChild(table);
+
+    if (opts.warning) {
+      card.appendChild(el('div', { class: 'warn-card' }, [opts.warning]));
+    }
+
+    const cancelBtn = el('button', { class: 'btn btn-secondary' }, [opts.cancelText || 'Cancel']);
+    const okBtn     = el('button', { class: 'btn' }, [opts.confirmText || 'Confirm']);
+
+    function close(result) {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') close(false);
+      if (e.key === 'Enter') close(true);
+    }
+    cancelBtn.addEventListener('click', () => close(false));
+    okBtn.addEventListener('click', () => close(true));
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+    document.addEventListener('keydown', onKey);
+
+    card.appendChild(el('div', { class: 'btn-row' }, [cancelBtn, okBtn]));
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    setTimeout(() => okBtn.focus(), 30);
+  });
+}
+
 // In-popup confirmation modal. Returns true on confirm, false on cancel.
 // opts: { title, body, confirmText, cancelText, danger, requireTyping }
 //   - danger: paints the confirm button red

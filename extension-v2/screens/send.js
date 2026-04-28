@@ -1,11 +1,11 @@
-// Send tab: build → password-confirm → sign → broadcast.
+// Send tab: build → review modal → password prompt → sign → broadcast.
 // v1.0 supports plain (non-stealth) sends only.
 
 import { secp, hex, isValidSpwAddress, signingDigest, computeTxid } from '../lib/spw.js';
 import { getSessionSync, touchSession, verifyPassword } from '../lib/vault.js';
 import { getUtxos, broadcastTx } from '../lib/rpc.js';
 import { fetchBalance, invalidate } from '../lib/chainCache.js';
-import { el, clear, toast, fmtSpw, passwordPrompt } from '../lib/ui.js';
+import { el, clear, toast, fmtSpw, reviewModal, passwordPrompt } from '../lib/ui.js';
 
 const FEATHERS = 100_000_000;            // 1 SPW = 1e8 feathers
 const MIN_FEE_FEATHERS = 10_000;         // 0.0001 SPW floor — must match node policy
@@ -13,9 +13,6 @@ const DUST_THRESHOLD_FEATHERS = 1_000;   // change below this is rolled into fee
 
 // Parse a decimal string like "1.23456789" into integer feathers without
 // going through Number (which loses precision past 2^53).
-// Throws on malformed input or amounts that overflow the safe integer range
-// (the chain itself uses unbounded ints, but our wire format / Number cast
-// downstream needs to fit).
 export function parseAmountToFeathers(str) {
   const s = String(str || '').trim();
   if (!s) throw new Error('Amount is required');
@@ -25,9 +22,7 @@ export function parseAmountToFeathers(str) {
   const [whole, frac = ''] = s.split('.');
   const padded = (frac + '00000000').slice(0, 8);
   const total = BigInt(whole) * 100_000_000n + BigInt(padded);
-  if (total > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error('Amount is too large');
-  }
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Amount is too large');
   if (total <= 0n) throw new Error('Amount must be greater than zero');
   return Number(total);
 }
@@ -37,20 +32,16 @@ export function renderSend(container, router) {
   const sess = getSessionSync();
   if (!sess) return;
 
-  const toInp     = el('input', { placeholder: 'D… (SPW address)', autocomplete: 'off' });
-  const amtInp    = el('input', { type: 'text', inputmode: 'decimal', placeholder: '0.00000000', autocomplete: 'off' });
-  const maxBtn    = el('button', {
+  const toInp   = el('input', { placeholder: 'D… (SPW address)', autocomplete: 'off' });
+  const amtInp  = el('input', { type: 'text', inputmode: 'decimal', placeholder: '0.00000000', autocomplete: 'off' });
+  const maxBtn  = el('button', {
     style: 'flex:0 0 auto;padding:8px 12px;font-size:.74rem;font-weight:700;color:var(--cyan);' +
            'background:var(--bg3);border:1px solid var(--border);border-radius:8px;letter-spacing:.04em',
   }, ['MAX']);
-  const feeInp    = el('input', { type: 'text', inputmode: 'decimal', value: '0.0001', autocomplete: 'off' });
-  const memoInp   = el('input', { placeholder: 'Optional memo (max 80 bytes)', maxlength: '120' });
-  const summary   = el('div', { class: 'card hidden' });
-  const msgEl     = el('div', { style: 'min-height:18px;font-size:.78rem;margin:8px 0' });
+  const feeInp  = el('input', { type: 'text', inputmode: 'decimal', value: '0.0001', autocomplete: 'off' });
+  const memoInp = el('input', { placeholder: 'Optional memo (max 80 bytes)', maxlength: '120' });
+  const msgEl   = el('div', { style: 'min-height:18px;font-size:.78rem;margin:8px 0' });
   const reviewBtn = el('button', { class: 'btn' }, ['Review']);
-  const sendBtn   = el('button', { class: 'btn hidden' }, ['Confirm & broadcast']);
-
-  let pending = null;
 
   function setMsg(text, kind = 'muted') {
     msgEl.textContent = text || '';
@@ -59,7 +50,7 @@ export function renderSend(container, router) {
                         kind === 'info' ? 'var(--cyan)' : 'var(--muted)';
   }
 
-  // MAX button — fills amount with (balance - fee) so user doesn't manually subtract.
+  // ── MAX button — fills amount with (balance - fee) ──
   maxBtn.addEventListener('click', async () => {
     setMsg('Loading balance…', 'info');
     let bal;
@@ -67,8 +58,7 @@ export function renderSend(container, router) {
     catch (e) { setMsg('Could not load your balance: ' + e.message, 'err'); return; }
     const balFeat = Number(bal.balance_feathers ?? 0);
     let feeFeat;
-    try { feeFeat = parseAmountToFeathers(feeInp.value); }
-    catch { feeFeat = MIN_FEE_FEATHERS; }
+    try { feeFeat = parseAmountToFeathers(feeInp.value); } catch { feeFeat = MIN_FEE_FEATHERS; }
     if (feeFeat < MIN_FEE_FEATHERS) feeFeat = MIN_FEE_FEATHERS;
     const maxFeat = balFeat - feeFeat;
     if (maxFeat <= 0) {
@@ -79,12 +69,9 @@ export function renderSend(container, router) {
     setMsg('Filled with maximum sendable amount (balance − fee).', 'info');
   });
 
+  // ── Review → modal → password prompt → sign+broadcast ──
   reviewBtn.addEventListener('click', async () => {
     setMsg('');
-    pending = null;
-    sendBtn.classList.add('hidden');
-    summary.classList.add('hidden');
-    summary.replaceChildren();
 
     // ── Validate inputs ──
     const to = toInp.value.trim();
@@ -103,9 +90,8 @@ export function renderSend(container, router) {
     }
 
     const memo = memoInp.value;
-    if (memo) {
-      const memoBytes = new TextEncoder().encode(memo).length;
-      if (memoBytes > 80) { setMsg('Memo exceeds 80 bytes.', 'err'); return; }
+    if (memo && new TextEncoder().encode(memo).length > 80) {
+      setMsg('Memo exceeds 80 bytes.', 'err'); return;
     }
 
     const need = amt + fee;
@@ -114,24 +100,19 @@ export function renderSend(container, router) {
     reviewBtn.disabled = true;
     reviewBtn.textContent = 'Loading…';
     let utxosResp;
-    try {
-      utxosResp = await getUtxos(sess.address);
-    } catch (e) {
+    try { utxosResp = await getUtxos(sess.address); }
+    catch (e) {
       setMsg('Could not load your unspent outputs: ' + e.message, 'err');
-      reviewBtn.disabled = false;
-      reviewBtn.textContent = 'Review';
+      reviewBtn.disabled = false; reviewBtn.textContent = 'Review';
       return;
     }
-    reviewBtn.disabled = false;
-    reviewBtn.textContent = 'Review';
+    reviewBtn.disabled = false; reviewBtn.textContent = 'Review';
 
     const allRaw = (utxosResp && utxosResp.utxos) ? utxosResp.utxos
                  : (Array.isArray(utxosResp) ? utxosResp : []);
     if (!allRaw.length) { setMsg('No unspent outputs available.', 'err'); return; }
 
-    // Sort ascending so the greedy loop picks the smallest set of UTXOs that
-    // covers `need`. Avoids accidentally consuming a 100-SPW UTXO to send 0.01,
-    // which would create a privacy-leaking large change output.
+    // Sort ascending for smallest-first selection (privacy-preserving).
     const all = allRaw.slice().sort((a, b) => a.amount - b.amount);
     const avail = all.reduce((s, u) => s + u.amount, 0);
     if (avail < need) {
@@ -142,15 +123,12 @@ export function renderSend(container, router) {
     let sum = 0;
     const selected = [];
     for (const u of all) {
-      selected.push(u);
-      sum += u.amount;
+      selected.push(u); sum += u.amount;
       if (sum >= need) break;
     }
     let change = sum - need;
 
-    // Dust handling: if the leftover change is below dust threshold, fold it
-    // into the fee instead of producing a dust output (which some nodes reject
-    // and which leaks an extra UTXO with tiny value).
+    // Dust → fold into fee.
     let foldedDust = 0;
     if (change > 0 && change < DUST_THRESHOLD_FEATHERS) {
       foldedDust = change;
@@ -159,52 +137,48 @@ export function renderSend(container, router) {
     }
 
     const ts = Math.floor(Date.now() / 1000);
-    pending = { to, amt, fee, change, ts, selected, memo };
+    const pending = { to, amt, fee, change, ts, selected, memo };
 
-    // ── Render review card ──
-    summary.classList.remove('hidden');
-    summary.appendChild(el('h3', {}, ['Review']));
-    summary.appendChild(row('To',
-      el('span', { class: 'v', style: 'font-family:ui-monospace,monospace;font-size:.74rem' },
-        [to.slice(0, 12) + '…' + to.slice(-6)])));
-    summary.appendChild(row('Amount', `${fmtSpw(amt)} SPW`));
-    summary.appendChild(row('Network fee', `${fmtSpw(fee)} SPW`));
-    if (foldedDust > 0) {
-      summary.appendChild(row('Dust (rolled into fee)', `${fmtSpw(foldedDust)} SPW`));
-    }
-    summary.appendChild(row('Total', `${fmtSpw(amt + fee)} SPW`));
-    if (change > 0) summary.appendChild(row('Change back to you', `${fmtSpw(change)} SPW`));
+    // ── Build review rows ──
+    const rows = [
+      ['To', el('span', {
+        style: 'font-family:ui-monospace,monospace;font-size:.74rem;color:var(--text);text-align:right;word-break:break-all',
+      }, [to.slice(0, 12) + '…' + to.slice(-6)])],
+      ['Amount',      `${fmtSpw(amt)} SPW`],
+      ['Network fee', `${fmtSpw(fee)} SPW`],
+    ];
+    if (foldedDust > 0) rows.push(['Dust (rolled into fee)', `${fmtSpw(foldedDust)} SPW`]);
+    rows.push(['Total', `${fmtSpw(amt + fee)} SPW`]);
+    if (change > 0) rows.push(['Change back to you', `${fmtSpw(change)} SPW`]);
     if (memo) {
-      summary.appendChild(row('Memo',
-        el('span', {
-          class: 'v',
-          style: 'max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
-        }, [memo])));
+      rows.push(['Memo', el('span', {
+        style: 'color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+      }, [memo])]);
     }
-    sendBtn.classList.remove('hidden');
-    setMsg('Review the details, then confirm to broadcast.', 'info');
+
+    // ── Pop the review modal ──
     touchSession();
-  });
+    const ok = await reviewModal({
+      title: 'Review transaction',
+      rows,
+      confirmText: 'Confirm & sign',
+      cancelText: 'Cancel',
+      warning: 'You are about to send SPW. Once broadcast, this cannot be undone.',
+    });
+    if (!ok) { setMsg('Cancelled.', 'muted'); return; }
 
-  sendBtn.addEventListener('click', async () => {
-    if (!pending) return;
-
-    // Re-prompt for password before signing. Prevents drive-by drains from
-    // an unlocked-but-unattended popup, and gives the user one last chance
-    // to abort.
+    // ── Password gate ──
     const password = await passwordPrompt({
-      title: 'Confirm transaction',
-      body: `You are about to send ${fmtSpw(pending.amt)} SPW. Enter your password to authorize.`,
+      title: 'Authorize transaction',
+      body: `Enter your password to sign and broadcast ${fmtSpw(pending.amt)} SPW.`,
       confirmText: 'Sign & broadcast',
     });
-    if (password == null) return;
-    const ok = await verifyPassword(password);
-    if (!ok) { setMsg('Wrong password. Transaction not sent.', 'err'); return; }
+    if (password == null) { setMsg('Cancelled.', 'muted'); return; }
+    const pwOk = await verifyPassword(password);
+    if (!pwOk) { setMsg('Wrong password. Transaction NOT sent.', 'err'); return; }
 
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Signing…';
-    setMsg('');
-
+    // ── Sign + broadcast ──
+    setMsg('Signing…', 'info');
     try {
       const sess2 = getSessionSync();
       if (!sess2) throw new Error('Wallet locked');
@@ -212,55 +186,43 @@ export function renderSend(container, router) {
       const pubKey = secp.getPublicKey(privKey, true);
       const pubHex = hex(pubKey);
 
-      const { to, amt, fee, change, ts, selected, memo } = pending;
-      const inputs = selected.map(u => ({
+      const inputs = pending.selected.map(u => ({
         prev_txid: u.txid, prev_vout: u.vout, script_sig: '', pubkey: pubHex,
       }));
-      const outputs = [{ amount: amt, address: to }];
-      if (memo) outputs[0].data = memo;
-      if (change > 0) outputs.push({ amount: change, address: sess2.address });
+      const outputs = [{ amount: pending.amt, address: pending.to }];
+      if (pending.memo) outputs[0].data = pending.memo;
+      if (pending.change > 0) outputs.push({ amount: pending.change, address: sess2.address });
 
-      const digest = signingDigest(inputs, outputs, ts, '');
+      const digest = signingDigest(inputs, outputs, pending.ts, '');
       const sigBytes = secp.signSync(digest, privKey, { canonical: true, der: true });
       const sigHex = hex(sigBytes);
       const signedInputs = inputs.map(i => ({ ...i, script_sig: sigHex }));
-      const txid = computeTxid(signedInputs, outputs, ts, '', '');
+      const txid = computeTxid(signedInputs, outputs, pending.ts, '', '');
 
-      sendBtn.textContent = 'Broadcasting…';
+      setMsg('Broadcasting…', 'info');
       let res;
       try {
         res = await broadcastTx({
           txid, inputs: signedInputs, outputs,
-          timestamp: ts, coinbase_data: '', tx_pubkey: '',
+          timestamp: pending.ts, coinbase_data: '', tx_pubkey: '',
         });
       } catch (netErr) {
-        // Critical wording: distinguish from "couldn't load balance".
         setMsg('Broadcast failed — your transaction was NOT sent: ' + netErr.message, 'err');
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Confirm & broadcast';
         return;
       }
       if (res && res.error) {
         setMsg('Broadcast rejected by node: ' + res.error, 'err');
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Confirm & broadcast';
         return;
       }
 
-      pending = null;
-      toInp.value = '';
-      amtInp.value = '';
-      memoInp.value = '';
-      summary.classList.add('hidden');
-      sendBtn.classList.add('hidden');
+      // ── Success: clear form, invalidate cache, jump to Activity ──
+      toInp.value = ''; amtInp.value = ''; memoInp.value = '';
       setMsg(`Broadcast! TXID ${(res.txid || txid).slice(0, 16)}…`, 'ok');
       toast('Transaction sent');
       invalidate(sess2.address);
-      setTimeout(() => router.go('activity'), 1500);
+      setTimeout(() => router.go('activity'), 1200);
     } catch (e) {
       setMsg('Failed: ' + e.message, 'err');
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Confirm & broadcast';
     }
   });
 
@@ -280,13 +242,5 @@ export function renderSend(container, router) {
     el('div', { class: 'field' }, [el('label', {}, ['Memo (optional, ≤ 80 bytes)']), memoInp]),
     msgEl,
     reviewBtn,
-    summary,
-    el('div', { style: 'height:8px' }),
-    sendBtn,
   ]));
-}
-
-function row(k, v) {
-  const right = typeof v === 'string' ? el('span', { class: 'v' }, [v]) : v;
-  return el('div', { class: 'row' }, [el('span', { class: 'k' }, [k]), right]);
 }
