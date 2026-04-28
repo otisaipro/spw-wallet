@@ -34,16 +34,22 @@ export function renderHome(container, router) {
       ]),
     ]),
     el('div', { class: 'action-grid' }, [
-      el('button', { class: 'action-btn', onclick: () => router.go('send') }, [
-        el('svg', { viewBox: '0 0 24 24', html: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>' }),
+      el('button', { class: 'action-btn action-send', onclick: () => router.go('send') }, [
+        el('div', { class: 'icon' }, [
+          el('svg', { viewBox: '0 0 24 24', html: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>' }),
+        ]),
         document.createTextNode('Send'),
       ]),
-      el('button', { class: 'action-btn', onclick: () => router.go('receive') }, [
-        el('svg', { viewBox: '0 0 24 24', html: '<path d="m12 5v14"/><path d="m5 12 7 7 7-7"/>' }),
+      el('button', { class: 'action-btn action-recv', onclick: () => router.go('receive') }, [
+        el('div', { class: 'icon' }, [
+          el('svg', { viewBox: '0 0 24 24', html: '<polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>' }),
+        ]),
         document.createTextNode('Receive'),
       ]),
-      el('button', { class: 'action-btn', onclick: () => router.go('activity') }, [
-        el('svg', { viewBox: '0 0 24 24', html: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' }),
+      el('button', { class: 'action-btn action-hist', onclick: () => router.go('activity') }, [
+        el('div', { class: 'icon' }, [
+          el('svg', { viewBox: '0 0 24 24', html: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' }),
+        ]),
         document.createTextNode('Activity'),
       ]),
     ]),
