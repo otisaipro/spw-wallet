@@ -3,7 +3,7 @@
   "name": "SPW Wallet",
   "short_name": "SPW",
   "version": "1.0.1",
-  "description": "Self-custody wallet for the SPW network. Create or import an account, view balance, send and receive SPW. Keys are encrypted locally with your password and never leave the browser.",
+  "description": "Self-custody wallet for the SPW network. Send, receive, and view balance. Keys are encrypted locally and never leave your browser.",
   "homepage_url": "https://spw.network",
   "minimum_chrome_version": "102",
   "icons": {
