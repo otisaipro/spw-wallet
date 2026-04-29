@@ -171,32 +171,25 @@ REST API to read on-chain state and submit signed transactions.
 ```
 Hi reviewer,
 
-This v1.0 is a complete self-custody wallet for the SPW network. All operations —
-account creation, balance display, send, receive, transaction history — happen
-inside the extension popup. There is no "open another website" action and no
-dApp / window.spw injection.
+This is a complete rework of the previously rejected "SPW Wallet Connect"
+(Yellow Nickel — launcher pattern). That build's popup only had an
+"Open Full Wallet" button that loaded wallet.spw.network; this build
+is a full self-custody wallet that runs entirely inside the popup.
 
-The previous submission ("SPW Wallet Connect") was correctly flagged because its
-popup only had an "Open Full Wallet" button that opened wallet.spw.network. That
-build has been replaced entirely. This is a different product:
+What's new vs. the rejected version:
+- Renamed: "SPW Wallet"
+- Popup: full UI (home / send / receive / activity / settings)
+- Manifest: no content_scripts, no <all_urls>, no web_accessible_resources
+- Permissions: "storage" + host_permissions on spw.network only
+- Keys encrypted with PBKDF2-SHA256 (600k iterations) → AES-GCM-256
+- Mnemonic stripped from session storage; only re-decrypted on demand
+- 15-minute idle auto-lock; locks immediately on browser close
 
-  • New name: SPW Wallet
-  • New popup: full wallet UI (home, send, receive, activity, settings)
-  • New manifest: no content scripts, no <all_urls>, no web_accessible_resources
-  • Permissions reduced to "storage" + host_permissions for spw.network only
-  • Keys encrypted with password (PBKDF2-SHA256 600k → AES-GCM 256)
-  • Decrypted material lives only in chrome.storage.session (auto-cleared on
-    browser close); 15-min idle lock enforced inside the popup
+All crypto libraries (@noble/secp256k1, @noble/hashes, @scure/bip39,
+qrcode) are bundled via esbuild in vendor/spw-vendor.bundle.mjs — no
+remote loading.
 
-All cryptographic libraries (@noble/secp256k1, @noble/hashes, @scure/bip39, qrcode)
-are bundled into vendor/spw-vendor.bundle.mjs via esbuild — no remote loading.
-
-Source code is public at https://github.com/otisaipro/spw-wallet — the entire
-extension is auditable. Specifically:
-  • lib/crypto.js  — vault encryption
-  • lib/spw.js     — secp256k1 + BIP-39 + BIP-32 + SPW address derivation
-  • lib/rpc.js     — node REST API client
-  • screens/*.js   — UI
+Source: https://github.com/otisaipro/spw-wallet (MIT, fully auditable).
 
 Thank you!
 ```
