@@ -116,23 +116,6 @@ export function computeTxid(inputs, outputs, ts, coinbase = '', txPubkey = '', c
   return hex(dsha256(new TextEncoder().encode(pyjson(data))));
 }
 
-// Stealth address output for private sends (one-time recipient via ECDH).
-export function makeStealthOutput(recipientSpendPub, recipientViewPub) {
-  const r = secp.utils.randomPrivateKey();
-  const rInt = BigInt('0x' + hex(r));
-  const R = secp.Point.BASE.multiply(rInt);
-  const vP = secp.Point.fromHex(recipientViewPub);
-  const sh = vP.multiply(rInt);
-  const xc = sh.toRawBytes(false).slice(1, 33);
-  const hInt = BigInt('0x' + hex(sha256(xc)));
-  const sP = secp.Point.fromHex(recipientSpendPub);
-  const otp = secp.Point.BASE.multiply(hInt).add(sP);
-  return {
-    oneTimeAddr: spwAddress(otp.toRawBytes(true)),
-    txPubkeyHex: hex(R.toRawBytes(true)),
-  };
-}
-
 // ── BIP32 derivation (hardened path m/44'/1926'/0'/0/0 for spend, .../1/0 for view)
 function _h512(key, data) { return hmac(sha512, key, data); }
 function _bip32Master(seed) {

@@ -157,15 +157,12 @@ REST API to read on-chain state and submit signed transactions.
 | Asset | Size | Status |
 |---|---|---|
 | Store icon | 128×128 PNG | ✓ `icons/icon-128.png` |
-| Screenshot 1 — Home (balance + actions) | 1280×800 PNG | TODO |
-| Screenshot 2 — Send | 1280×800 PNG | TODO |
-| Screenshot 3 — Receive (QR) | 1280×800 PNG | TODO |
-| Screenshot 4 — Activity | 1280×800 PNG | TODO |
-| Small promo tile | 440×280 PNG | optional |
-| Marquee promo | 1400×560 PNG | optional |
-
-To generate screenshots: load the unpacked extension in Chrome, set up a test wallet,
-take screenshots of each tab, then composite them onto a 1280×800 background.
+| Screenshot 1 — Home (balance + actions) | 1280×800 PNG | ✓ `screenshots/screenshot-1-home.png` |
+| Screenshot 2 — Send | 1280×800 PNG | ✓ `screenshots/screenshot-2-send.png` |
+| Screenshot 3 — Receive (QR) | 1280×800 PNG | ✓ `screenshots/screenshot-3-receive.png` |
+| Screenshot 4 — Activity | 1280×800 PNG | ✓ `screenshots/screenshot-4-activity.png` |
+| Small promo tile | 440×280 PNG | optional, skipped |
+| Marquee promo | 1400×560 PNG | optional, skipped |
 
 ---
 

@@ -22,10 +22,6 @@ export function getExplorer(address) {
   return api(`/explorer/${encodeURIComponent(address)}`);
 }
 
-export function getTx(txid) {
-  return api(`/tx/${encodeURIComponent(txid)}`);
-}
-
 export function broadcastTx(txObject) {
   return api('/tx/broadcast', {
     method: 'POST',

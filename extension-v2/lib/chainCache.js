@@ -4,13 +4,11 @@
 //
 // Each call returns the cached value if fresh, otherwise kicks off a fetch.
 // Multiple concurrent callers share the same in-flight promise (no thundering
-// herd). Stale-while-revalidate semantics: a soft-stale cache resolves
-// immediately and a background refresh runs.
+// herd).
 
 import { getBalance, getExplorer, getUtxos } from './rpc.js';
 
 const TTL_MS = 30_000;          // hard freshness — younger than this = fresh
-const SOFT_TTL_MS = 5_000;       // serve stale + revalidate when older than this
 
 const _balance = new Map();      // addr → { v, t }
 const _explorer = new Map();     // addr → { v, t, txsReversed }
@@ -76,31 +74,6 @@ export function prefetchAll(addr) {
   if (!addr) return;
   fetchBalance(addr).catch(() => {});
   fetchExplorer(addr).catch(() => {});
-}
-
-// Stale-while-revalidate: returns the cached entry instantly if present,
-// kicks off a background refresh if older than SOFT_TTL_MS.
-// Caller may pass an onUpdate callback to be notified when fresh data arrives.
-export function readBalanceSWR(addr, onUpdate) {
-  const cached = _balance.get(addr);
-  if (cached && _now() - cached.t < SOFT_TTL_MS) return Promise.resolve(cached.v);
-  const fresh = fetchBalance(addr);
-  if (cached) {
-    fresh.then(v => onUpdate && onUpdate(v)).catch(() => {});
-    return Promise.resolve(cached.v);
-  }
-  return fresh;
-}
-
-export function readExplorerSWR(addr, onUpdate) {
-  const cached = _explorer.get(addr);
-  if (cached && _now() - cached.t < SOFT_TTL_MS) return Promise.resolve(cached);
-  const fresh = fetchExplorer(addr);
-  if (cached) {
-    fresh.then(e => onUpdate && onUpdate(e)).catch(() => {});
-    return Promise.resolve(cached);
-  }
-  return fresh;
 }
 
 export function invalidate(addr) {
