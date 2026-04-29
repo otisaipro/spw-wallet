@@ -161,8 +161,8 @@ REST API to read on-chain state and submit signed transactions.
 | Screenshot 2 — Send | 1280×800 PNG | ✓ `screenshots/screenshot-2-send.png` |
 | Screenshot 3 — Receive (QR) | 1280×800 PNG | ✓ `screenshots/screenshot-3-receive.png` |
 | Screenshot 4 — Activity | 1280×800 PNG | ✓ `screenshots/screenshot-4-activity.png` |
-| Small promo tile | 440×280 PNG | optional, skipped |
-| Marquee promo | 1400×560 PNG | optional, skipped |
+| Small promo tile | 440×280 PNG | ✓ `screenshots/promo-small-440x280.png` |
+| Marquee promo | 1400×560 PNG | ✓ `screenshots/promo-marquee-1400x560.png` |
 
 ---
 
