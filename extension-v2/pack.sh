@@ -26,6 +26,7 @@ FILES=(
   icons/icon-32.png
   icons/icon-48.png
   icons/icon-128.png
+  icons/sparrow.png
   vendor/spw-vendor.bundle.mjs
   lib/chainCache.js
   lib/crypto.js

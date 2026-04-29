@@ -15,7 +15,7 @@ export function renderOnboarding(container, onDone) {
   // ── Welcome ──
   function welcome() {
     container.appendChild(el('div', { class: 'screen center' }, [
-      el('div', { class: 'logo' }, ['S']),
+      el('div', { class: 'logo', role: 'img', 'aria-label': 'SPW Wallet' }),
       el('h1', { style: 'margin-bottom:6px' }, ['SPW Wallet']),
       el('p', { style: 'margin-bottom:24px' }, ['Self-custody wallet for the SPW network. Your keys are encrypted on this device with your password — they never leave the browser.']),
       el('button', { class: 'btn', onclick: () => go(createIntro) }, ['Create a new wallet']),

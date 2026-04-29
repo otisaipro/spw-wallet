@@ -98,9 +98,11 @@ label{font-size:.78rem;font-weight:600;color:var(--muted);display:block;margin-b
 .screen h2{font-size:1.1rem;font-weight:800;margin-bottom:8px}
 .screen p{font-size:.85rem;color:var(--muted);margin-bottom:14px;line-height:1.55}
 .center{text-align:center;padding:30px 16px 18px}
-.center .logo{width:64px;height:64px;border-radius:16px;background:var(--grad);margin:0 auto 16px;
-  display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:#fff;
-  box-shadow:0 4px 24px rgba(124,58,237,.45)}
+.center .logo{width:80px;height:80px;margin:0 auto 16px;
+  background:url('../icons/sparrow.png') center/contain no-repeat;
+  filter:drop-shadow(0 4px 16px rgba(124,58,237,.5));
+  /* Hide any stray text content (callers used to pass an "S" placeholder). */
+  font-size:0;color:transparent}
 
 /* ── Mnemonic display ───────────────────────────────── */
 .mnemonic-grid{

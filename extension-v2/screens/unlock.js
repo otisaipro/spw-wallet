@@ -36,7 +36,7 @@ export function renderUnlock(container, onUnlock, onReset) {
   pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
 
   container.appendChild(el('div', { class: 'screen center' }, [
-    el('div', { class: 'logo' }, ['S']),
+    el('div', { class: 'logo', role: 'img', 'aria-label': 'SPW Wallet' }),
     el('h2', { style: 'margin-bottom:6px;text-align:center' }, ['Welcome back']),
     el('p', { style: 'text-align:center;margin-bottom:18px' }, ['Enter your password to unlock the wallet.']),
     el('div', { class: 'field' }, [pwInput]),
