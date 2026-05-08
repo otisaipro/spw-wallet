@@ -3,7 +3,7 @@
 Official wallet for the Sparrow Network (SPW) — an installable browser PWA plus a Python wallet engine.
 Single-file frontend, zero build, zero dependencies, fully self-hostable.
 
-Official deployment: https://spw.network/wallet
+Official deployment: https://wallet.spw.network
 
 ## Features
 
@@ -15,7 +15,7 @@ Official deployment: https://spw.network/wallet
 - **Multi-account management** — account list stored in browser `localStorage`
 - **QR codes** — receive QR display and scan-to-send
 - **Address explorer** — built-in on-chain lookup
-- **Base58Check addresses** — prefix `S` (version byte `0x1e`)
+- **Base58Check addresses** — prefix `D` (version byte `0x1e`)
 
 ## Repository Layout
 
@@ -42,7 +42,7 @@ spw_wallet/
    cd wallet_web && python3 -m http.server 8000
    ```
    Open `http://localhost:8000` in a browser.
-2. Or visit https://spw.network/wallet directly.
+2. Or visit https://wallet.spw.network directly.
 3. Use "Add to Home Screen" in a supported browser to install as a PWA.
 4. Once installed, the app runs offline; account data lives in browser `localStorage`.
 
@@ -57,7 +57,7 @@ from wallet.bip39 import generate_mnemonic, mnemonic_to_spend_key
 mnemonic = generate_mnemonic(128)   # 12 words
 privkey, chain_code = mnemonic_to_spend_key(mnemonic)
 w = Wallet.from_private_key(privkey.hex())
-print(w.address)          # Base58Check address starting with "S"
+print(w.address)          # Base58Check address starting with "D"
 print(w.spend_key_hex)    # Primary spend private key
 print(w.view_key_hex)     # View private key (stealth scanning)
 ```

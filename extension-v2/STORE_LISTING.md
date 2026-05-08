@@ -1,11 +1,11 @@
 # Chrome Web Store — Listing Copy & Justifications
 
 **Paste these into the Developer Dashboard when submitting.**
-This v1.0 is a **complete, self-contained wallet** — every action (account creation,
-balance display, send, receive, history) happens inside the extension. There is no
-"open another website" button, no remote code execution, no dApp integration in this
-release. This addresses the prior rejection (reference Yellow Nickel) which flagged
-the previous build as a launcher because its popup only opened wallet.spw.network.
+
+SPW Wallet is a **complete, self-contained wallet** — every action (account creation,
+balance display, send, receive, history) happens inside the extension popup. There
+is no "open another website" button, no remote code execution, and no dApp
+integration in this release.
 
 ---
 
@@ -17,9 +17,6 @@ the previous build as a launcher because its popup only opened wallet.spw.networ
 | **Summary** (max 132) | `Self-custody wallet for the SPW network. Create or import an account, view balance, send and receive — all inside the browser.` |
 | **Category** | Productivity |
 | **Language** | English |
-
-> Renamed from "SPW Wallet Connect" — the previous name reflected a thin SDK bridge
-> design. This is now a full wallet that genuinely manages keys.
 
 ---
 
@@ -171,23 +168,20 @@ REST API to read on-chain state and submit signed transactions.
 ```
 Hi reviewer,
 
-This is a complete rework of the previously rejected "SPW Wallet Connect"
-(Yellow Nickel — launcher pattern). That build's popup only had an
-"Open Full Wallet" button that loaded wallet.spw.network; this build
-is a full self-custody wallet that runs entirely inside the popup.
+SPW Wallet is a self-custody wallet for the SPW network. Everything runs inside
+the popup — no content scripts, no remote code, no dApp integration in this
+release.
 
-What's new vs. the rejected version:
-- Renamed: "SPW Wallet"
+How the extension is built:
 - Popup: full UI (home / send / receive / activity / settings)
 - Manifest: no content_scripts, no <all_urls>, no web_accessible_resources
-- Permissions: "storage" + host_permissions on spw.network only
+- Permissions: "storage" + host_permissions on https://spw.network/* only
 - Keys encrypted with PBKDF2-SHA256 (600k iterations) → AES-GCM-256
 - Mnemonic stripped from session storage; only re-decrypted on demand
 - 15-minute idle auto-lock; locks immediately on browser close
 
-All crypto libraries (@noble/secp256k1, @noble/hashes, @scure/bip39,
-qrcode) are bundled via esbuild in vendor/spw-vendor.bundle.mjs — no
-remote loading.
+All crypto libraries (@noble/secp256k1, @noble/hashes, @scure/bip39, qrcode)
+are bundled via esbuild in vendor/spw-vendor.bundle.mjs — no remote loading.
 
 Source: https://github.com/otisaipro/spw-wallet (MIT, fully auditable).
 
