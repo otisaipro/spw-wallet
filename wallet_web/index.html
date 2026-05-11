@@ -927,6 +927,26 @@
             Open source &amp; auditable ·
             <a href="https://github.com/otisaipro/spw-wallet" target="_blank" rel="noopener">GitHub ↗</a>
           </div>
+
+          <!-- Chrome extension promo. STORE_URL is the search-results page;
+               swap to the detail page (chromewebstore.google.com/detail/...)
+               once that direct slug is finalized. -->
+          <a href="https://chromewebstore.google.com/search/SPW%20Wallet?hl=en-US"
+             target="_blank" rel="noopener"
+             style="display:block;margin-top:24px;padding:14px;border:1px solid var(--border);border-radius:14px;background:rgba(11,17,36,.45);text-decoration:none;color:inherit;transition:.2s"
+             onmouseover="this.style.borderColor='rgba(124,58,237,.5)';this.style.background='rgba(124,58,237,.08)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.background='rgba(11,17,36,.45)'">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--cyan)">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/>
+              </svg>
+              <div style="font-weight:700;font-size:.92rem;color:#fff">Or use the Chrome extension</div>
+            </div>
+            <img src="/chrome-store.png" alt="SPW Wallet on Chrome Web Store" style="width:100%;height:auto;border-radius:8px;display:block">
+            <div style="margin-top:8px;font-size:.78rem;color:var(--muted);line-height:1.5">
+              Same wallet, no website needed. Available on Chrome Web Store.
+            </div>
+          </a>
         </div>
 
       </div><!-- /ob-track -->
@@ -1123,6 +1143,28 @@
       <!-- HOME TAB -->
       <div id="tab-home" class="tab-panel">
         <div id="global-msg"></div>
+
+        <!-- Chrome extension promo banner. Dismissed via sessionStorage so
+             it doesn't nag the same user across the same session, but does
+             come back next time they open the wallet (light-touch reminder
+             rather than one-time-then-gone-forever). -->
+        <div id="ext-promo-banner" class="hidden" style="margin:10px 12px 0;padding:12px 14px;border:1px solid rgba(124,58,237,.35);border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.10),rgba(0,224,255,.04));display:flex;align-items:flex-start;gap:10px">
+          <div style="flex-shrink:0;width:32px;height:32px;border-radius:8px;background:rgba(0,224,255,.12);display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--cyan)"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.86rem;font-weight:700;color:#fff;line-height:1.3">Install the Chrome extension</div>
+            <div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.5">One click to open your wallet — no website required. Same keys, stored locally in the extension.</div>
+            <a href="https://chromewebstore.google.com/search/SPW%20Wallet?hl=en-US"
+               target="_blank" rel="noopener"
+               style="display:inline-block;margin-top:8px;font-size:.78rem;font-weight:600;color:var(--cyan);text-decoration:none">
+              Open Chrome Web Store →
+            </a>
+          </div>
+          <button onclick="dismissExtPromo()" aria-label="Dismiss"
+                  style="flex-shrink:0;width:24px;height:24px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:0">×</button>
+        </div>
+
         <div class="home-hero fade-up">
           <div id="home-avatar" class="home-avatar"></div>
           <div id="home-acct-name" class="home-acct-name"></div>
@@ -1311,6 +1353,22 @@
               <svg width="16" height="16"><use href="#ic-plus"/></svg>
               Add Account
             </button>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">Apps</div>
+            <a href="https://chromewebstore.google.com/search/SPW%20Wallet?hl=en-US"
+               target="_blank" rel="noopener"
+               class="settings-item" style="text-decoration:none;color:inherit">
+              <div class="si-icon" style="background:rgba(0,224,255,.1);color:var(--cyan)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+              </div>
+              <div style="flex:1">
+                <div class="si-label">Chrome Extension</div>
+                <div class="si-sub">Same wallet, no website needed</div>
+              </div>
+              <div class="si-arrow"><svg><use href="#ic-chevron-right"/></svg></div>
+            </a>
           </div>
 
           <div class="settings-section">
@@ -1919,11 +1977,24 @@ window.showTab=function(tab){
     const nb=document.getElementById('nav-'+t);
     if(nb)nb.classList.toggle('active',t===tab);
   });
-  if(tab==='home')renderHome();
+  if(tab==='home'){renderHome();_maybeShowExtPromo();}
   if(tab==='receive')renderReceive();
   if(tab==='activity')renderActivity();
   if(tab==='settings')renderSettings();
   if(tab==='explorer')renderExplorer();
+};
+
+// Chrome extension promo banner: show on home unless dismissed this session.
+function _maybeShowExtPromo(){
+  const banner=document.getElementById('ext-promo-banner');
+  if(!banner)return;
+  const dismissed=sessionStorage.getItem('ext-promo-dismissed')==='1';
+  banner.classList.toggle('hidden',dismissed);
+}
+window.dismissExtPromo=function(){
+  sessionStorage.setItem('ext-promo-dismissed','1');
+  const banner=document.getElementById('ext-promo-banner');
+  if(banner)banner.classList.add('hidden');
 };
 
 // ── Deeplinks ───────────────────────────────────────────────────────
@@ -2062,9 +2133,6 @@ function _loadCache(){
 }
 function _applyCache(c){
   if(!c)return;
-  document.getElementById('home-balance').textContent=(c.bal??0).toFixed(8);
-  document.getElementById('home-feathers').textContent=(c.feat??0).toLocaleString()+' feathers';
-  document.getElementById('asset-spw-bal').textContent=(c.bal??0).toFixed(8)+' SPW';
   if(c.utxos)_utxos=c.utxos;
   if(c.txs){
     const el=document.getElementById('home-recent-txs');
