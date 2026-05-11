@@ -210,7 +210,16 @@ export function renderSend(container, router) {
           timestamp: pending.ts, coinbase_data: '', tx_pubkey: '',
         });
       } catch (netErr) {
-        setMsg('Broadcast failed — your transaction was NOT sent: ' + netErr.message, 'err');
+        if (netErr.code === 'TIMEOUT') {
+          // Request was aborted client-side after the cap. The node may or
+          // may not have received it. Tell the user to verify in Activity
+          // before resending — re-broadcasting an already-accepted tx is
+          // fine (idempotent at the node), but the human should know.
+          setMsg('Network timeout. Your transaction may have been broadcast — '
+               + 'check Activity in 30–60 seconds before resending.', 'err');
+        } else {
+          setMsg('Broadcast failed — your transaction was NOT sent: ' + netErr.message, 'err');
+        }
         return;
       }
       if (res && res.error) {
